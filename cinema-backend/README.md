@@ -5,7 +5,7 @@
 ### 1) Clone repo
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/mmocklin18/csci-4050
 cd cinema-backend
 ```
 
