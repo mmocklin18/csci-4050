@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { fetchMovies, BackendMovie } from "@/lib/api";
 
 type Rating = "G" | "PG" | "PG-13" | "R";
 type Status = "current" | "comingSoon";
@@ -14,62 +15,39 @@ interface Movie {
     showtimes: string[];
 }
 
-const Genres = [
-    "Action",
-    "Animation",
-    "Comedy",
-    "Drama",
-    "Fantasy",
-    "Horror",
-    "Romance",
-    "Sci-Fi",
-    "Thriller",
-    "Musical",
+const Genres = [ "Action", "Animation", "Comedy", "Drama", "Fantasy",
+    "Horror", "Romance", "Sci-Fi", "Thriller", "Musical",
 ];
 
-const Movies: Movie[] = [
-    {
-        id: "whiplash",
-        title: "Whiplash",
-        rating: "R",
-        genre: "Drama",
-        status: "current",
-        poster: "https://image.tmdb.org/t/p/w500/lIv1QinFqz4dlp5U4lQ6HaiskOZ.jpg",
-        showtimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
-    },
-    {
-        id: "sunset-drive",
-        title: "Sunset Drive",
-        rating: "PG-13",
-        genre: "Drama",
-        status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=21",
-        showtimes: ["1:15 PM", "4:15 PM", "7:45 PM"],
-    },
-    {
-        id: "nebula-quest",
-        title: "Nebula Quest",
-        rating: "PG",
-        genre: "Sci-Fi",
-        status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=22",
-        showtimes: ["12:30 PM", "3:30 PM", "6:30 PM"],
-    },
-    {
-        id: "laugh-lines",
-        title: "Laugh Lines",
-        rating: "PG",
-        genre: "Comedy",
-        status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=23",
-        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
-    },
-];
+// your original static demo movies
+const StaticMovies: Movie[] = [ /* … keep your existing 4 objects … */ ];
 
 export default function Page() {
     const [genres, setGenres] = useState<Set<string>>(new Set());
     const [searchText, setSearchText] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [backendMovies, setBackendMovies] = useState<Movie[]>([]);
+
+    // fetch backend movies on mount
+    useEffect(() => {
+        fetchMovies()
+            .then((data) => {
+                // normalize backend data into Movie type
+                const normalized: Movie[] = data.map((m) => ({
+                    id: String(m.id),
+                    title: m.title,
+                    genre: m.genre ?? "Unknown",
+                    rating: (m.rating as Rating) ?? "PG",
+                    status: (m.status as Status) ?? "current",
+                    poster:
+                        m.poster ??
+                        "https://via.placeholder.com/500x750.png?text=No+Poster",
+                    showtimes: m.showtimes ?? [],
+                }));
+                setBackendMovies(normalized);
+            })
+            .catch((e) => console.error("Failed to fetch backend movies", e));
+    }, []);
 
     const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -83,14 +61,18 @@ export default function Page() {
         return next;
     };
 
+    // combine static + backend
+    const allMovies = [...StaticMovies, ...backendMovies];
+
     const filtered = useMemo(() => {
-        return Movies.filter((m) => {
+        return allMovies.filter((m) => {
             const matchesTitle =
-                !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase());
+                !searchQuery ||
+                m.title.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesGenres = genres.size === 0 || genres.has(m.genre);
             return matchesTitle && matchesGenres;
         });
-    }, [searchQuery, genres]);
+    }, [searchQuery, genres, allMovies]);
 
     const current = filtered.filter((m) => m.status === "current");
     const coming = filtered.filter((m) => m.status === "comingSoon");
