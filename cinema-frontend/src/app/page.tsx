@@ -1,5 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
+import Link from "next/link";
+
 
 type Rating = "G" | "PG" | "PG-13" | "R";
 type Status = "current" | "comingSoon";
@@ -23,45 +25,46 @@ const Genres = [
     "Horror",
     "Romance",
     "Sci-Fi",
+    "Sports",
     "Thriller",
     "Musical",
 ];
 
 const Movies: Movie[] = [
     {
+        id: "crazy-rich-asians",
+        title: "Crazy Rich Asians",
+        rating: "PG-13",
+        genre: "Romance",
+        status: "current",
+        poster: "https://m.media-amazon.com/images/I/51TTqKHu1uL._UF894,1000_QL80_.jpg",
+        showtimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
+    },
+    {
+        id: "iron-man",
+        title: "Iron Man",
+        rating: "PG-13",
+        genre: "Action",
+        status: "comingSoon",
+        poster: "https://www.movieposters.com/cdn/shop/products/3998dd3fa7e628e415e9805b960bec61_480x.progressive.jpg?v=1573592743",
+        showtimes: ["1:15 PM", "4:15 PM", "7:45 PM"],
+    },
+    {
+        id: "knives-out",
+        title: "Knives Out",
+        rating: "PG-13",
+        genre: "Mystery",
+        status: "comingSoon",
+        poster: "https://i.ebayimg.com/images/g/eTwAAOSwu-Fi4wEt/s-l1200.jpg",
+        showtimes: ["12:30 PM", "3:30 PM", "6:30 PM"],
+    },
+    {
         id: "whiplash",
         title: "Whiplash",
         rating: "R",
         genre: "Drama",
-        status: "current",
-        poster: "https://image.tmdb.org/t/p/w500/lIv1QinFqz4dlp5U4lQ6HaiskOZ.jpg",
-        showtimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
-    },
-    {
-        id: "sunset-drive",
-        title: "Sunset Drive",
-        rating: "PG-13",
-        genre: "Drama",
         status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=21",
-        showtimes: ["1:15 PM", "4:15 PM", "7:45 PM"],
-    },
-    {
-        id: "nebula-quest",
-        title: "Nebula Quest",
-        rating: "PG",
-        genre: "Sci-Fi",
-        status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=22",
-        showtimes: ["12:30 PM", "3:30 PM", "6:30 PM"],
-    },
-    {
-        id: "laugh-lines",
-        title: "Laugh Lines",
-        rating: "PG",
-        genre: "Comedy",
-        status: "comingSoon",
-        poster: "https://picsum.photos/500/750?random=23",
+        poster: "https://m.media-amazon.com/images/M/MV5BMDFjOWFkYzktYzhhMC00NmYyLTkwY2EtYjViMDhmNzg0OGFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
         showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
     },
 ];
@@ -299,71 +302,93 @@ export default function Page() {
 
 function MovieCard({ movie }: { movie: Movie }) {
     return (
-        <article className="card">
-            <div className="posterWrap">
-                <img className="poster" src={movie.poster} alt={`${movie.title} poster`} />
-            </div>
-            <div className="cardBody">
-                <div className="title">{movie.title}</div>
-                <div className="genre">{movie.genre}</div>
-                <div className="showtimes">
-                    {movie.showtimes.map((t) => (
-                        <span className="outline" key={t}>{t}</span>
-                    ))}
+        <article className="card" aria-labelledby={`t-${movie.id}`}>
+            <Link
+                href={`/movies/${movie.id}`}
+                className="cardLink"
+                aria-labelledby={`t-${movie.id}`}
+            >
+                <div className="posterWrap">
+                    <img className="poster" src={movie.poster} alt={`${movie.title} poster`} />
                 </div>
-            </div>
+
+                <div className="cardBody">
+                    <h3 id={`t-${movie.id}`} className="title">{movie.title}</h3>
+                    <div className="genre">{movie.genre}</div>
+
+                    {/* showtimes as pills */}
+                    <div className="showtimes">
+                        {movie.showtimes.map((t) => (
+                            <span className="pill" key={t}>{t}</span>
+                        ))}
+                    </div>
+                </div>
+            </Link>
 
             <style jsx>{`
-        .card {
-          background: #fff;
-          border: 1px solid #ececec;
-          border-radius: 14px;
-          overflow: hidden;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-          display: flex;
-          flex-direction: column;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        }
-        .posterWrap { position: relative; aspect-ratio: 2 / 3; background: #f5f5f5; }
-        .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+                .card {
+                    background: #fff;
+                    border: 1px solid #ececec;
+                    border-radius: 14px;
+                    overflow: hidden;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                .card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+                }
 
-        .cardBody {
-          padding: 12px 14px 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .title {
-          font-weight: 600;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .genre {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          opacity: 0.85;
-        }
-        .showtimes {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 4px;
-        }
-        .outline {
-          border: 1px solid #d7d7d7;
-          border-radius: 999px;
-          font-size: 12px;
-          padding: 4px 10px;
-          line-height: 1;
-          white-space: nowrap;
-        }
-      `}</style>
+                .cardLink {
+                    display: block;
+                    text-decoration: none;
+                    color: inherit;       /* keep your text colors */
+                    cursor: pointer;
+                    outline: none;
+                }
+                .cardLink:focus-visible {
+                    outline: 3px solid #111;
+                    outline-offset: 3px;
+                    border-radius: 14px;
+                }
+
+                .posterWrap { position: relative; aspect-ratio: 2 / 3; background: #f5f5f5; }
+                .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+                .cardBody {
+                    padding: 12px 14px 16px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .title {
+                    font-weight: 600;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .genre {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    opacity: 0.85;
+                }
+                .showtimes {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    margin-top: 4px;
+                }
+                .pill {
+                    border: 1px solid #d7d7d7;
+                    border-radius: 999px;
+                    font-size: 12px;
+                    padding: 4px 10px;
+                    line-height: 1;
+                    white-space: nowrap;
+                }
+            `}</style>
         </article>
     );
 }
+
