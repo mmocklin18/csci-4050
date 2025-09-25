@@ -21,13 +21,15 @@ const Genres = [
     "Animation",
     "Comedy",
     "Drama",
+    "Family",
     "Fantasy",
     "Horror",
+    "Musical",
+    "Mystery",
     "Romance",
     "Sci-Fi",
     "Sports",
     "Thriller",
-    "Musical",
 ];
 
 const Movies: Movie[] = [
@@ -65,6 +67,15 @@ const Movies: Movie[] = [
         genre: "Drama",
         status: "comingSoon",
         poster: "https://m.media-amazon.com/images/M/MV5BMDFjOWFkYzktYzhhMC00NmYyLTkwY2EtYjViMDhmNzg0OGFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
+    },
+    {
+        id: "mamma-mia",
+        title: "Mamma Mia",
+        rating: "PG-13",
+        genre: "Musical",
+        status: "current",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc2i-oEi7rjT8SyAjegJAgNJP1DwZwrUSGpA&s",
         showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
     },
 ];
@@ -315,11 +326,9 @@ function MovieCard({ movie }: { movie: Movie }) {
                 <div className="cardBody">
                     <h3 id={`t-${movie.id}`} className="title">{movie.title}</h3>
                     <div className="genre">{movie.genre}</div>
-
-                    {/* showtimes as pills */}
                     <div className="showtimes">
                         {movie.showtimes.map((t) => (
-                            <span className="pill" key={t}>{t}</span>
+                            <span className="showtimesStyle" key={t}>{t}</span>
                         ))}
                     </div>
                 </div>
@@ -342,7 +351,7 @@ function MovieCard({ movie }: { movie: Movie }) {
                 .cardLink {
                     display: block;
                     text-decoration: none;
-                    color: inherit;       /* keep your text colors */
+                    color: inherit;       
                     cursor: pointer;
                     outline: none;
                 }
@@ -379,7 +388,7 @@ function MovieCard({ movie }: { movie: Movie }) {
                     gap: 8px;
                     margin-top: 4px;
                 }
-                .pill {
+                .showtimesStyle {
                     border: 1px solid #d7d7d7;
                     border-radius: 999px;
                     font-size: 12px;
