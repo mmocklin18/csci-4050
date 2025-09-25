@@ -1,10 +1,15 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-
-# Virtual env
+*.py[cod]
 .venv/
-
-# Environment variables
+venv/
+env/
 .env
+
+# Editor
+.vscode/
+
+# Secrets/certs (if you want to ignore certs)
+*.pem
+*.key
+*.pem
