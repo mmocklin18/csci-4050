@@ -78,6 +78,15 @@ const Movies: Movie[] = [
         poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc2i-oEi7rjT8SyAjegJAgNJP1DwZwrUSGpA&s",
         showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
     },
+    {
+        id: "avatar-fire-and-ash",
+        title: "Avatar: Fire and Ash",
+        rating: "PG-13",
+        genre: "Sci-Fi",
+        status: "current",
+        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRivV67R9p_D1Zf6gU_DnIwO7dwUtavdeoVjA&s",
+        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
+    },
 ];
 
 export default function Page() {
