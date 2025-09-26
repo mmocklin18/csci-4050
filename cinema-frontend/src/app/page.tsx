@@ -321,10 +321,14 @@ export default function Page() {
 }
 
 function MovieCard({ movie }: { movie: Movie }) {
+    const bookingHref = (time: string) =>
+        `/booking?movie=${encodeURIComponent(movie.id)}&time=${encodeURIComponent(time)}`;
+
     return (
         <article className="card" aria-labelledby={`t-${movie.id}`}>
+
             <Link
-                href={`/movies/${movie.id}`}
+                href={`/movies/${encodeURIComponent(movie.id)}`}
                 className="cardLink"
                 aria-labelledby={`t-${movie.id}`}
             >
@@ -335,78 +339,88 @@ function MovieCard({ movie }: { movie: Movie }) {
                 <div className="cardBody">
                     <h3 id={`t-${movie.id}`} className="title">{movie.title}</h3>
                     <div className="genre">{movie.genre}</div>
-                    <div className="showtimes">
-                        {movie.showtimes.map((t) => (
-                            <span className="showtimesStyle" key={t}>{t}</span>
-                        ))}
-                    </div>
                 </div>
             </Link>
 
+            <div className="showtimes">
+                {movie.showtimes.map((t) => (
+                    <span className="pill" key={t}>{t}</span>
+                ))}
+            </div>
+
+
             <style jsx>{`
-                .card {
-                    background: #fff;
-                    border: 1px solid #ececec;
-                    border-radius: 14px;
-                    overflow: hidden;
-                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-                    transition: transform 0.2s ease, box-shadow 0.2s ease;
-                }
-                .card:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-                }
+        .card {
+          background: #fff;
+          border: 1px solid #ececec;
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
 
-                .cardLink {
-                    display: block;
-                    text-decoration: none;
-                    color: inherit;       
-                    cursor: pointer;
-                    outline: none;
-                }
-                .cardLink:focus-visible {
-                    outline: 3px solid #111;
-                    outline-offset: 3px;
-                    border-radius: 14px;
-                }
+        .cardLink {
+          display: block;
+          text-decoration: none;
+          color: inherit;
+          outline: none;
+        }
+        .cardLink:focus-visible {
+          outline: 3px solid #111;
+          outline-offset: 3px;
+          border-radius: 14px;
+        }
 
-                .posterWrap { position: relative; aspect-ratio: 2 / 3; background: #f5f5f5; }
-                .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .posterWrap { position: relative; aspect-ratio: 2 / 3; background: #f5f5f5; }
+        .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-                .cardBody {
-                    padding: 12px 14px 16px;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
-                .title {
-                    font-weight: 600;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-                .genre {
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    opacity: 0.85;
-                }
-                .showtimes {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                    margin-top: 4px;
-                }
-                .showtimesStyle {
-                    border: 1px solid #d7d7d7;
-                    border-radius: 999px;
-                    font-size: 12px;
-                    padding: 4px 10px;
-                    line-height: 1;
-                    white-space: nowrap;
-                }
-            `}</style>
+        .cardBody {
+          padding: 12px 14px 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+            align-items: center;
+            text-align: center;
+        }
+        .title {
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+            text-align: center;
+        }
+        .genre {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          opacity: 0.85;
+            text-align: center;
+        }
+
+        .showtimes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 14px 14px;
+            justify-content: center;
+        }
+        .pill {
+            border: 1px solid #d7d7d7;
+            border-radius: 999px;
+            font-size: 14px;
+            padding: 4px 10px;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+       
+      `}</style>
         </article>
     );
 }
+
 
