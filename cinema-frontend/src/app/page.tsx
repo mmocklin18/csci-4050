@@ -31,7 +31,37 @@ const Genres = [
     "Sports",
     "Thriller",
 ];
+type ApiMovie = {
+    movie_id: number;
+    name: string;
+    description: string;
+    rating: "G" | "PG" | "PG-13" | "R";
+    runtime: number;
+    release_date: string;
+    available: boolean;
+    poster: string;
+    trailer: string | null;
+    theater: string | null;
+    main_genre: string;
+};
 
+function toStatus(m: ApiMovie): Status {
+    if (m.available) return "current";
+    const t = Date.parse(m.release_date);
+    return Number.isFinite(t) && t <= Date.now() ? "current" : "comingSoon";
+}
+
+function mapApiMovie(m: ApiMovie): Movie {
+    return {
+        id: String(m.movie_id),
+        title: m.name,
+        rating: m.rating,
+        genre: m.main_genre ?? "Drama",
+        status: toStatus(m),
+        poster: m.poster ?? "/placeholder.png",
+        showtimes: [], // backend doesnt provide, empty for now
+    };
+}
 
 export default function Page() {
     const [genres, setGenres] = useState<Set<string>>(new Set());
@@ -60,8 +90,8 @@ export default function Page() {
                 setLoading(true);
                 const res = await fetch("/api/movies", { cache: "no-store" });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data: Movie[] = await res.json();
-                if (alive) setMovies(data);
+                const api: ApiMovie[] = await res.json();
+                if (alive) setMovies((api ?? []).map(mapApiMovie));
             } catch (err: unknown) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load movies";

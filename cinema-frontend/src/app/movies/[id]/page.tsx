@@ -3,29 +3,72 @@
 import React from "react";
 import Link from "next/link";
 import {useState, useEffect} from "react";
+import { useParams } from "next/navigation";
 
- 
+// backend shape
+type ApiMovie = {
+    movie_id: number;
+    name: string;
+    description: string;
+    rating: "G" | "PG" | "PG-13" | "R";
+    runtime: number;
+    release_date: string;     // ISO
+    available: boolean;
+    poster: string;
+    trailer: string | null;
+    theater: string | null;
+    main_genre: string;
+};
+
+function mapApiToUi(m: ApiMovie) {
+    return {
+        id: String(m.movie_id),
+        title: m.name,
+        rating: m.rating,
+        description: m.description,
+        posterUrl: m.poster ?? "/placeholder.png",
+        trailerUrl: m.trailer ?? undefined,
+        showtimes: [] as string[], // backend doesnt provide, empty for now
+    };
+}
+
 export default function MovieDetails() {
+    const { id } = useParams<{ id: string }>();
     const [date, setDate] = useState("");
+    const [movie, setMovie] = useState<ReturnType<typeof mapApiToUi> | null>(null);
+    const [err, setErr] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Save selected date to localStorage whenever it changes
+    // persist selected date
     useEffect(() => {
-        if (date) {
-            localStorage.setItem("selectedDate", date);
-        }
+        if (date) localStorage.setItem("selectedDate", date);
     }, [date]);
-    //Hardcoded movie details for testing
-	const movie = {
-		id: "1",
-		title: "Crazy Rich Asians",
-		rating: "PG-13",
-		description: "Woman discovers her boyfriend is rich and goes to Singapore.",
-		posterUrl: "https://m.media-amazon.com/images/M/MV5BMTYxNDMyOTAxN15BMl5BanBnXkFtZTgwMDg1ODYzNTM@._V1_FMjpg_UX1000_.jpg",
-		showtimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
-		trailerUrl: "https://www.youtube.com/embed/ZQ-YX-5bAs0",
-	};
 
-	return (
+    // fetch one movie by id (via Next proxy: /api/movies?id=...)
+    useEffect(() => {
+        if (!id) return;
+        const url = `/api/movies?id=${encodeURIComponent(String(id))}`; // or `${process.env.NEXT_PUBLIC_API_BASE}/movies/${id}` if calling backend directly
+        (async () => {
+            try {
+                const r = await fetch(url, { cache: "no-store" });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const data = await r.json();
+                // handle either single object or array response
+                const raw: ApiMovie = Array.isArray(data) ? data[0] : data;
+                setMovie(mapApiToUi(raw));
+            } catch (e: any) {
+                setErr(e.message ?? "Failed to load movie");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [id]);
+
+    if (loading) return <main className="p-6">Loading…</main>;
+    if (err) return <main className="p-6 text-red-600">Error: {err}</main>;
+    if (!movie) return <main className="p-6">Movie not found.</main>;
+
+    return (
 		<div style={{ backgroundColor: "#fff", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0}}>
             <header className="navbar">
                 <div className="brand">BookMyShow</div>
