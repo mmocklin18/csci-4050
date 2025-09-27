@@ -28,21 +28,25 @@ export default function Page() {
     const [searchQuery, setSearchQuery] = useState("");
     const [backendMovies, setBackendMovies] = useState<Movie[]>([]);
 
+    const allowedRatings: Rating[] = ["G", "PG", "PG-13", "R"];
+
     // fetch backend movies on mount
     useEffect(() => {
         fetchMovies()
             .then((data) => {
                 // normalize backend data into Movie type
                 const normalized: Movie[] = data.map((m) => ({
-                    id: String(m.id),
-                    title: m.title,
-                    genre: m.genre ?? "Unknown",
-                    rating: (m.rating as Rating) ?? "PG",
-                    status: (m.status as Status) ?? "current",
+                    id: `db-${m.movie_id}`,
+                    title: m.name,
+                    genre: m.main_genre ?? "Unknown",
+                    rating: allowedRatings.includes((m.rating ?? "").toUpperCase() as Rating)
+                        ? ((m.rating ?? "").toUpperCase() as Rating)
+                        : "PG",
+                    status: m.available === false ? "comingSoon" : "current",
                     poster:
                         m.poster ??
                         "https://via.placeholder.com/500x750.png?text=No+Poster",
-                    showtimes: m.showtimes ?? [],
+                    showtimes: [],
                 }));
                 setBackendMovies(normalized);
             })
@@ -62,7 +66,7 @@ export default function Page() {
     };
 
     // combine static + backend
-    const allMovies = [...StaticMovies, ...backendMovies];
+    const allMovies = useMemo(() => [...StaticMovies, ...backendMovies], [backendMovies]);
 
     const filtered = useMemo(() => {
         return allMovies.filter((m) => {

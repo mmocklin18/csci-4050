@@ -1,13 +1,17 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export interface BackendMovie {
-    id: number;
-    title: string;
-    genre: string;
-    rating: string;
-    status: string;
-    poster?: string;
-    showtimes?: string[];
+    movie_id: number;
+    name: string;
+    description?: string | null;
+    rating?: string | null;
+    runtime?: number | null;
+    release_date?: string | null;
+    available?: boolean | null;
+    poster?: string | null;
+    trailer?: string | null;
+    theater?: string | null;
+    main_genre?: string | null;
 }
 
 export async function fetchMovies(): Promise<BackendMovie[]> {

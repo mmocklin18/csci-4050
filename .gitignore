@@ -5,6 +5,9 @@ __pycache__/
 venv/
 env/
 .env
+.next
+next-env.d.ts
+node_modules/
 
 # Editor
 .vscode/
