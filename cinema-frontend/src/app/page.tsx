@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 
 
@@ -32,67 +32,14 @@ const Genres = [
     "Thriller",
 ];
 
-const Movies: Movie[] = [
-    {
-        id: "crazy-rich-asians",
-        title: "Crazy Rich Asians",
-        rating: "PG-13",
-        genre: "Romance",
-        status: "current",
-        poster: "https://m.media-amazon.com/images/I/51TTqKHu1uL._UF894,1000_QL80_.jpg",
-        showtimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
-    },
-    {
-        id: "iron-man",
-        title: "Iron Man",
-        rating: "PG-13",
-        genre: "Action",
-        status: "comingSoon",
-        poster: "https://www.movieposters.com/cdn/shop/products/3998dd3fa7e628e415e9805b960bec61_480x.progressive.jpg?v=1573592743",
-        showtimes: ["1:15 PM", "4:15 PM", "7:45 PM"],
-    },
-    {
-        id: "knives-out",
-        title: "Knives Out",
-        rating: "PG-13",
-        genre: "Mystery",
-        status: "comingSoon",
-        poster: "https://i.ebayimg.com/images/g/eTwAAOSwu-Fi4wEt/s-l1200.jpg",
-        showtimes: ["12:30 PM", "3:30 PM", "6:30 PM"],
-    },
-    {
-        id: "whiplash",
-        title: "Whiplash",
-        rating: "R",
-        genre: "Drama",
-        status: "comingSoon",
-        poster: "https://m.media-amazon.com/images/M/MV5BMDFjOWFkYzktYzhhMC00NmYyLTkwY2EtYjViMDhmNzg0OGFkXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
-        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
-    },
-    {
-        id: "mamma-mia",
-        title: "Mamma Mia",
-        rating: "PG-13",
-        genre: "Musical",
-        status: "current",
-        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc2i-oEi7rjT8SyAjegJAgNJP1DwZwrUSGpA&s",
-        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
-    },
-    {
-        id: "avatar-fire-and-ash",
-        title: "Avatar: Fire and Ash",
-        rating: "PG-13",
-        genre: "Sci-Fi",
-        status: "current",
-        poster: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRivV67R9p_D1Zf6gU_DnIwO7dwUtavdeoVjA&s",
-        showtimes: ["2:10 PM", "5:10 PM", "8:10 PM"],
-    },
-];
 
 export default function Page() {
     const [genres, setGenres] = useState<Set<string>>(new Set());
     const [searchText, setSearchText] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [movies, setMovies] = useState<Movie[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -106,17 +53,37 @@ export default function Page() {
         return next;
     };
 
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("/api/movies", { cache: "no-store" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data: Movie[] = await res.json();
+                if (alive) setMovies(data);
+            } catch (err: unknown) {
+                const message =
+                    err instanceof Error ? err.message : "Failed to load movies";
+                setError(message);
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => { alive = false; };
+    }, []);
+
     const filtered = useMemo(() => {
-        return Movies.filter((m) => {
+        return movies.filter((m) => {
             const matchesTitle =
                 !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesGenres = genres.size === 0 || genres.has(m.genre);
             return matchesTitle && matchesGenres;
         });
-    }, [searchQuery, genres]);
+    }, [movies, searchQuery, genres]);
 
     const current = filtered.filter((m) => m.status === "current");
-    const coming = filtered.filter((m) => m.status === "comingSoon");
+    const coming  = filtered.filter((m) => m.status === "comingSoon");
 
     return (
         <div className="page">
