@@ -31,6 +31,9 @@ const Genres = [
     "Sports",
     "Thriller",
 ];
+
+const DefaultShowtimes = ["12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"];
+
 type ApiMovie = {
     movie_id: number;
     name: string;
@@ -59,7 +62,7 @@ function mapApiMovie(m: ApiMovie): Movie {
         genre: m.main_genre ?? "Drama",
         status: toStatus(m),
         poster: m.poster ?? "/placeholder.png",
-        showtimes: [], // backend doesnt provide, empty for now
+        showtimes: [...DefaultShowtimes], // harcoded showtimes
     };
 }
 
@@ -156,7 +159,7 @@ export default function Page() {
                     <section className="section">
                         <h1 className="sectionTitle">Currently Showing</h1>
                         {current.length === 0 ? (
-                            <p className="empty">No results match your filters.</p>
+                            <p className="empty">No titles match your filters.</p>
                         ) : (
                             <div className="cards">
                                 {current.map((m) => (
@@ -186,13 +189,11 @@ export default function Page() {
           background: #fff;
           color: #0b0b0b;
         }
-
         .page {
           min-height: 100svh;
           display: flex;
           flex-direction: column;
         }
-
         .navbar {
           height: 64px;
           background: black;
@@ -205,14 +206,12 @@ export default function Page() {
           top: 0;
           z-index: 10;
         }
-
         .brand {
           font-weight: 1000;
           font-size: 24px;
           letter-spacing: 0.4px;
           margin-inline: auto;
         }
-
         .container {
           display: grid;
           grid-template-columns: 175px 1fr;
@@ -222,27 +221,22 @@ export default function Page() {
           width: 100%;
           margin: 0 auto;
         }
-
         .filters {
           border-right: 1px solid #e8e8e8;
           padding-right: 24px;
         }
-
         .filtersTitle {
           font-size: 28px;
           margin: 0 0 16px;
         }
-
         .filterBlock {
-          margin: 18px 0 24px;
+            margin: 18px 0 24px;
         }
-
         .label {
           font-weight: 700;
           letter-spacing: 0.4px;
           margin-bottom: 10px;
         }
-
         .check {
           display: flex;
           align-items: center;
@@ -250,12 +244,10 @@ export default function Page() {
           margin: 8px 0;
           font-size: 14px;
         }
-        
         .searchBar {
           position: relative;
           width: 100%;
         }
-        
         .searchInput {
           width: 100%;
           height: 40px;
@@ -272,35 +264,28 @@ export default function Page() {
         .searchInput::-webkit-search-cancel-button {
           -webkit-appearance: none; 
         }
-
         .content {
           padding-left: 8px;
         }
-
         .section {
           margin-bottom: 36px;
         }
-
         .sectionTitle {
           font-size: 40px;
           font-weight: 800;
           margin: 0 0 16px;
         }
-        
         .content .sectionTitle {
             text-align: center;
         }
-        
         .cards {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 20px;
         }
-
         .empty {
           opacity: 0.7;
         }
-
         @media (max-width: 980px) {
           .container {
             grid-template-columns: 1fr;
@@ -318,8 +303,6 @@ export default function Page() {
 }
 
 function MovieCard({ movie }: { movie: Movie }) {
-    const bookingHref = (time: string) =>
-        `/booking?movie=${encodeURIComponent(movie.id)}&time=${encodeURIComponent(time)}`;
 
     return (
         <article className="card" aria-labelledby={`t-${movie.id}`}>
@@ -340,11 +323,10 @@ function MovieCard({ movie }: { movie: Movie }) {
             </Link>
 
             <div className="showtimes">
-                {movie.showtimes.map((t) => (
-                    <span className="pill" key={t}>{t}</span>
+                {(movie.showtimes?.length ? movie.showtimes : DefaultShowtimes).map((t) => (
+                    <span className="showtimeStyle" key={t}>{t}</span>
                 ))}
             </div>
-
 
             <style jsx>{`
         .card {
@@ -354,12 +336,13 @@ function MovieCard({ movie }: { movie: Movie }) {
           overflow: hidden;
           box-shadow: 0 1px 2px rgba(0,0,0,0.04);
           transition: transform 0.2s ease, box-shadow 0.2s ease;
+          display: flex;
+          flex-direction: column;
         }
         .card:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         }
-
         .cardLink {
           display: block;
           text-decoration: none;
@@ -371,10 +354,17 @@ function MovieCard({ movie }: { movie: Movie }) {
           outline-offset: 3px;
           border-radius: 14px;
         }
-
-        .posterWrap { position: relative; aspect-ratio: 2 / 3; background: #f5f5f5; }
-        .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
-
+        .posterWrap { 
+            position: relative; 
+            aspect-ratio: 2 / 3; 
+            background: #f5f5f5; 
+        }
+        .poster { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            display: block; 
+        }
         .cardBody {
           padding: 12px 14px 8px;
           display: flex;
@@ -385,27 +375,27 @@ function MovieCard({ movie }: { movie: Movie }) {
         }
         .title {
           font-weight: 600;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-            text-align: center;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          text-align: center;
         }
         .genre {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word; 
           opacity: 0.85;
-            text-align: center;
+          text-align: center;
         }
-
         .showtimes {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             padding: 0 14px 14px;
             justify-content: center;
+            margin-top: 6px;
         }
-        .pill {
+        .showtimeStyle {
             border: 1px solid #d7d7d7;
             border-radius: 999px;
             font-size: 14px;
@@ -413,8 +403,7 @@ function MovieCard({ movie }: { movie: Movie }) {
             line-height: 1;
             white-space: nowrap;
         }
-
-       
+        
       `}</style>
         </article>
     );

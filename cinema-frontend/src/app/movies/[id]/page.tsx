@@ -20,6 +20,38 @@ type ApiMovie = {
     main_genre: string;
 };
 
+const DefaultShowtimes = ["12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"];
+
+function toYouTubeEmbed(url?: string | null): string | undefined {
+    if (!url) return undefined;
+    try {
+        const u = new URL(url);
+        const host = u.hostname.replace(/^www\./, "");
+        if (host === "youtu.be") {
+            const id = u.pathname.slice(1);
+            return id ? `https://www.youtube-nocookie.com/embed/${id}` : undefined;
+        }
+        if (host === "youtube.com" || host === "m.youtube.com") {
+            const id = u.searchParams.get("v");
+            if (id) return `https://www.youtube-nocookie.com/embed/${id}`;
+            const m = u.pathname.match(/\/embed\/([^/?#]+)/);
+            if (m?.[1]) return `https://www.youtube-nocookie.com/embed/${m[1]}`;
+        }
+    } catch {
+    }
+    return undefined;
+}
+
+type UiMovie = {
+    id: string;
+    title: string;
+    rating: ApiMovie["rating"];
+    description: string;
+    posterUrl: string;
+    trailerEmbedUrl?: string;
+    showtimes: string[];
+};
+
 function mapApiToUi(m: ApiMovie) {
     return {
         id: String(m.movie_id),
@@ -27,8 +59,8 @@ function mapApiToUi(m: ApiMovie) {
         rating: m.rating,
         description: m.description,
         posterUrl: m.poster ?? "/placeholder.png",
-        trailerUrl: m.trailer ?? undefined,
-        showtimes: [] as string[], // backend doesnt provide, empty for now
+        trailerEmbedUrl: toYouTubeEmbed(m.trailer),
+        showtimes: DefaultShowtimes, // hardcode showtimes
     };
 }
 
@@ -39,25 +71,21 @@ export default function MovieDetails() {
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // persist selected date
     useEffect(() => {
         if (date) localStorage.setItem("selectedDate", date);
     }, [date]);
 
-    // fetch one movie by id (via Next proxy: /api/movies?id=...)
     useEffect(() => {
         if (!id) return;
-        const url = `/api/movies?id=${encodeURIComponent(String(id))}`; // or `${process.env.NEXT_PUBLIC_API_BASE}/movies/${id}` if calling backend directly
         (async () => {
             try {
-                const r = await fetch(url, { cache: "no-store" });
+                setLoading(true);
+                const r = await fetch(`/api/movies?id=${encodeURIComponent(String(id))}`, { cache: "no-store" });
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                const data = await r.json();
-                // handle either single object or array response
-                const raw: ApiMovie = Array.isArray(data) ? data[0] : data;
-                setMovie(mapApiToUi(raw));
-            } catch (e: any) {
-                setErr(e.message ?? "Failed to load movie");
+                const data: ApiMovie | null = await r.json();
+                setMovie(data ? mapApiToUi(data) : null);
+            } catch (err: unknown) {
+                setErr(err instanceof Error ? err.message : "Failed to load movie");
             } finally {
                 setLoading(false);
             }
@@ -116,9 +144,8 @@ export default function MovieDetails() {
 
 					<h2 style={{color: "black"}}><strong>Showtimes (select one below):</strong></h2>
 					{/*List of showtimes as clickable links to booking page*/}
-					<ul style={{ listStyle: "none", padding: 0}}>
+					<ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "5px"}}>
                         {movie.showtimes.map((time) => {
-                            // Build booking link (with date)
                             let href = `/booking?title=${encodeURIComponent(movie.title)}&time=${encodeURIComponent(time)}`;
                             if (date) {
                                 href += `&date=${encodeURIComponent(date)}`;
@@ -149,14 +176,14 @@ export default function MovieDetails() {
 					</ul>
 				</div>
 			</div>
-		   {/* Embedded trailer*/}
+
 			<div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
 				<h2 style={{fontSize: "20px", fontWeight: "bold", color: "black", marginBottom: "15px" }}>Trailer</h2>
 				<iframe 
                     style = {{marginBottom: "20px", borderRadius: 12}}
 					width="500"
 					height="300"
-					src={movie.trailerUrl}
+                    src={`${movie.trailerEmbedUrl}?rel=0`}
 					title="Movie Trailer"
 					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 					allowFullScreen
