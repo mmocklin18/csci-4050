@@ -18,10 +18,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_SSL_CA = os.getenv("DB_SSL_CA")
 
 #form db url
-DATABASE_URL = (
-    f"mysql+asyncmy://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    f"?ssl_ca={DB_SSL_CA}"
-)
+DATABASE_URL = f"mysql+asyncmy://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 #Create the async engine that manages connection pool
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)

@@ -5,8 +5,9 @@ from app.routers.movies import router as movie_router
 
 app = FastAPI()
 
-app.include_router(health_router)
-app.include_router(movie_router)
+# Include routers with /api prefix
+app.include_router(health_router, prefix="/api")
+app.include_router(movie_router, prefix="/api")
 
 @app.get("/")
 def root():
