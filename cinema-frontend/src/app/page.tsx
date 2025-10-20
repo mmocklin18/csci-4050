@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 
 
 type Rating = "G" | "PG" | "PG-13" | "R";
@@ -120,9 +121,8 @@ export default function Page() {
 
     return (
         <div className="page">
-            <header className="navbar">
-                <div className="brand">BookMyShow</div>
-            </header>
+            <Navbar />
+
             <div className="container">
                 <aside className="filters">
                     <h3 className="filtersTitle">Search</h3>
@@ -195,22 +195,41 @@ export default function Page() {
           flex-direction: column;
         }
         .navbar {
-          height: 64px;
-          background: black;
-          color: #fff;
-          display: flex;
-          align-items: center;
-          padding: 0 24px;
-          gap: 24px;
-          position: sticky;
-          top: 0;
-          z-index: 10;
+            position: relative;
+            height: 64px;
+            background: black;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
         }
+
         .brand {
-          font-weight: 1000;
-          font-size: 24px;
-          letter-spacing: 0.4px;
-          margin-inline: auto;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 1000;
+            font-size: 24px;
+            letter-spacing: 0.4px;
+        }
+
+        .authBtns {
+            margin-left: auto;
+        }
+        .authBtn {
+            background: transparent;
+            color: #fff;
+            border: 1px solid #fff;
+            border-radius: 8px;
+            padding: 4px 10px;   /* ↓ reduced padding */
+            font-size: 14px;     /* ↓ smaller text */
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .authBtn:hover {
+            background: #fff;
+            color: #000;
         }
         .container {
           display: grid;
