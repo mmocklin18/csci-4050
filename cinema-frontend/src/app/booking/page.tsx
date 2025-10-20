@@ -2,6 +2,7 @@
 import React, { use, useEffect } from "react";
 import {useState} from "react";
 import { useSearchParams } from "next/navigation";
+import Navbar from "@/components/Navbar";
 
 export default function Booking() {
     const params = useSearchParams();
@@ -24,9 +25,7 @@ export default function Booking() {
 
     return (
         <div style={{ backgroundColor: "#fff", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, margin: 0}}>
-            <header className="navbar">
-                <div className="brand">BookMyShow</div>
-            </header>
+            <Navbar/>
             <h1 style={{marginTop: "30px", fontSize: "24px", fontWeight: "bold", color: "black", marginBottom: "16px", marginLeft: "auto", marginRight: "auto", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column"}}>
                 Booking 
             </h1>

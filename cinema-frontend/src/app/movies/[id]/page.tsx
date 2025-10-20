@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import {useState, useEffect} from "react";
 import { useParams } from "next/navigation";
+import Navbar from "@/components/Navbar";
 
 // backend shape
 type ApiMovie = {
@@ -98,9 +99,7 @@ export default function MovieDetails() {
 
     return (
 		<div style={{ backgroundColor: "#fff", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0}}>
-            <header className="navbar">
-                <div className="brand">BookMyShow</div>
-            </header>
+            <Navbar/>
 			<div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px", padding: "20px"}}>
 				<img src={movie.posterUrl} alt={movie.title} style={{ width: 200, borderRadius: 12, marginRight: "20px" }} />
 				<div>
