@@ -8,6 +8,7 @@ env/
 .next
 next-env.d.ts
 node_modules/
+.env.local
 
 # Editor
 .vscode/
