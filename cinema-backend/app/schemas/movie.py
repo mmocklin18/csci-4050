@@ -12,7 +12,6 @@ class MovieBase(BaseModel):
     available: Optional[bool]
     poster: Optional[str]
     trailer: Optional[str]
-    theater: Optional[str]
     main_genre: Optional[str]
 
 
