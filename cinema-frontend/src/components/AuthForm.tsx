@@ -26,7 +26,7 @@ export default function AuthForm({
     const [err, setErr] = useState<string | null>(null);
     const [promoOptIn, setPromoOptIn] = useState(false);
     const [userType, setUserType] = useState<string>("customer");
-    const typeRef = useRef<HTMLSelectElement>(null);
+    // typeRef removed — we'll use controlled select bound to `userType`
 
 
     // refs
@@ -141,8 +141,11 @@ export default function AuthForm({
 
                         <label className="field">
                             <span className="label">Account Type<span className="required">*</span></span>
-                            <select ref={typeRef} required defaultValue="">
-                                <option value="" disabled hidden>Select</option>
+                            <select
+                                required
+                                value={userType}
+                                onChange={(e) => setUserType(e.target.value)}
+                            >
                                 <option value="customer">Customer</option>
                                 <option value="admin">Admin</option>
                             </select>
