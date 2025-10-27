@@ -7,12 +7,20 @@ class UserType(str, Enum):
     customer = "customer"
     admin = "admin"
 
+
+# state values used in the DB
+class StateType(str, Enum):
+    Active = "Active"
+    Inactive = "Inactive"
+    Suspended = "Suspended"
+
 #shared fields
 class UserBase(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    type: UserType
+    # DDL allows NULL for `type`, so make this optional
+    type: Optional[UserType] = None
 
 
 class UserCreate(UserBase):
@@ -20,6 +28,12 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     user_id: int
+    # phoneno stored as integer in the model/table
+    phoneno: Optional[int] = None
+    # state enum
+    state: Optional[StateType] = None
+    # promo stored as tinyint -> boolean
+    promo: Optional[bool] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):

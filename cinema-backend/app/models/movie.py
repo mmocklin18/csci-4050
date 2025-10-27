@@ -14,5 +14,4 @@ class Movie(Base):
     available: Mapped[bool] = mapped_column(Boolean, default=True)
     poster: Mapped[str | None] = mapped_column(String(500))
     trailer: Mapped[str | None] = mapped_column(String(500))
-    theater: Mapped[str | None] = mapped_column(String(255))
     main_genre: Mapped[str | None] = mapped_column(String(100))
