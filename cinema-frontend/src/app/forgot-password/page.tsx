@@ -77,14 +77,14 @@ export default function ForgotPasswordPage() {
 
       .pageWrap { min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
       .card { width: min(92vw, 520px); background: #fff; border: 1px solid #ececec; border-radius: 12px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-      .title { font-size: 20px; font-weight: 800; margin: 0 0 6px }
+      .title { font-size: 20px; font-weight: 800; margin: 0 0 6px; color: black }
       .subtitle { margin: 0 0 12px; color: #555 }
       .alert { padding: 10px 12px; border-radius: 8px; margin-bottom: 12px }
       .alert.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca }
       .alert.success { background: #ecfdf5; color: #065f46; border: 1px solid #bbf7d0 }
       .form { display: grid; gap: 12px }
-      .field { display: grid; gap: 6px }
-      .label { font-size: 12px; font-weight: 700 }
+      .field { display: grid; gap: 6px; color: black }
+      .label { font-size: 12px; font-weight: 700; color: black }
       input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e5e7eb }
       .primary { height: 44px; border: 0; border-radius: 10px; background: #111; color: #fff; font-weight: 700 }
     `}</style>
