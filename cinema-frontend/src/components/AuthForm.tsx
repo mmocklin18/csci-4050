@@ -26,6 +26,8 @@ export default function AuthForm({
     const [err, setErr] = useState<string | null>(null);
     const [promoOptIn, setPromoOptIn] = useState(false);
     const [userType, setUserType] = useState<string>("customer");
+    const [addAddress, setAddAddress] = useState<boolean>(false);
+    const [addPayment, setAddPayment] = useState<boolean>(false);
     // typeRef removed — we'll use controlled select bound to `userType`
 
 
@@ -34,6 +36,14 @@ export default function AuthForm({
     const lastRef  = useRef<HTMLInputElement>(null);
     const emailRef = useRef<HTMLInputElement>(null);
     const passRef  = useRef<HTMLInputElement>(null);
+    const phoneRef  = useRef<HTMLInputElement>(null);
+    const streetRef = useRef<HTMLInputElement>(null);
+    const cityRef = useRef<HTMLInputElement>(null);
+    const stateRef = useRef<HTMLInputElement>(null);
+    const zipRef = useRef<HTMLInputElement>(null);
+    const cardRef = useRef<HTMLInputElement>(null);
+    const dateRef = useRef<HTMLInputElement>(null);
+    const cvcRef = useRef<HTMLInputElement>(null);
 
     const API_BASE = useMemo(
         () =>
@@ -63,9 +73,27 @@ export default function AuthForm({
                     last_name:  lastRef.current?.value?.trim()  || "",
                     email:      emailRef.current?.value?.trim() || "",
                     password:   passRef.current?.value || "",
-                    type:       userType || "customer",
-                    // NOTE: promotional_emails is NOT in the backend schema; don’t send it
+                    phone:      phoneRef.current?.value?.trim() || "",
+                    // we need to add address to backend only if its provided
+                    //we need to send if the user wants to receive promotional emails to backend
+                    // we need to add card info to backend only if its provided
                 };
+
+                    if (addAddress) {
+                        body.address = {
+                            street: streetRef.current?.value?.trim() || "",
+                            city:   cityRef.current?.value?.trim() || "",
+                            state:  stateRef.current?.value?.trim() || "",
+                            zip:    zipRef.current?.value?.trim() || "",
+                        };
+                    }
+                    if (addPayment) {
+                        body.payment_method = {
+                            card_number: cardRef.current?.value?.trim() || "",
+                            expiration:  dateRef.current?.value?.trim() || "",
+                            cvc:         cvcRef.current?.value?.trim() || "",
+                        };
+                    }
             } else {
                 url = `${API_BASE}/auth/login`;
                 body = {
@@ -101,7 +129,7 @@ export default function AuthForm({
     }
 
     return (
-        <div className={`card ${compact ? "compact" : ""}`}>
+    <div className={`card ${compact ? "compact" : ""} ${mode === "signup" ? "signup" : ""}`}>
             {showTabs && (
                 <div className="segmented">
                     <button
@@ -126,37 +154,102 @@ export default function AuthForm({
             {err && <div className="alert">{err}</div>}
 
             <form onSubmit={handleSubmit} className="form">
-                {mode === "signup" && (
-                    <>
-                        <div className="row2">
+                {mode === "signup" ? (
+                    <div className="columns">
+                        <div className="col left">
+                            <div className="row2">
+                                <label className="field">
+                                    <span className="label">First name<span className="required">*</span></span>
+                                    <input ref={firstRef} placeholder="Jane" required />
+                                </label>
+                                <label className="field">
+                                    <span className="label">Last name<span className="required">*</span></span>
+                                    <input ref={lastRef} placeholder="Doe" required />
+                                </label>
+                            </div>
+
                             <label className="field">
-                                <span className="label">First name<span className="required">*</span></span>
-                                <input ref={firstRef} placeholder="Jane" required />
+                                <span className="label">Email<span className="required">*</span></span>
+                                <input ref={emailRef} type="email" placeholder="you@example.com" required />
                             </label>
+
                             <label className="field">
-                                <span className="label">Last name<span className="required">*</span></span>
-                                <input ref={lastRef} placeholder="Doe" required />
+                                <span className="label">Phone Number<span className="required">*</span></span>
+                                <input ref={phoneRef} type="tel" placeholder="555-555-5555" required />
                             </label>
                         </div>
 
+                        <div className="col right">
+                            <label className="checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={addAddress}
+                                    onChange={(e) => setAddAddress(e.target.checked)}
+                                />
+                                <span>Add a home address to my account</span>
+                            </label>
+
+                            {addAddress && (
+                                <>
+                                    <label className="field">
+                                        <span className="label">Street</span>
+                                        <input ref={streetRef} placeholder="100 Main Street" required={addAddress} />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="label">City</span>
+                                        <input ref={cityRef} placeholder="San Diego" required={addAddress} />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="label">State</span>
+                                        <input ref={stateRef} placeholder="California" required={addAddress} />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="label">Zip Code</span>
+                                        <input ref={zipRef} placeholder="30000" required={addAddress} />
+                                    </label>
+                                </>
+                            )}
+
+                            <label className="checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={addPayment}
+                                    onChange={(e) => setAddPayment(e.target.checked)}
+                                />
+                                <span>Add a payment method to my account</span>
+                            </label>
+
+                            {addPayment && (
+                                <>
+                                    <label className="field">
+                                        <span className="label">Payment Card Number</span>
+                                        <input ref={cardRef} placeholder="4242 4242 4242 4242" required={addPayment} />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="label">Expiration Date</span>
+                                        <input ref={dateRef} placeholder="01/2000" required={addPayment} />
+                                    </label>
+
+                                    <label className="field">
+                                        <span className="label">CVC</span>
+                                        <input ref={cvcRef} placeholder="333" required={addPayment} />
+                                    </label>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <>
                         <label className="field">
-                            <span className="label">Account Type<span className="required">*</span></span>
-                            <select
-                                required
-                                value={userType}
-                                onChange={(e) => setUserType(e.target.value)}
-                            >
-                                <option value="customer">Customer</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                            <span className="label">Email<span className="required">*</span></span>
+                            <input ref={emailRef} type="email" placeholder="you@example.com" required />
                         </label>
                     </>
                 )}
-
-                <label className="field">
-                    <span className="label">Email<span className="required">*</span></span>
-                    <input ref={emailRef} type="email" placeholder="you@example.com" required />
-                </label>
 
                 <label className="field">
                     <span className="label">Password<span className="required">*</span></span>
@@ -202,6 +295,15 @@ export default function AuthForm({
                     border-radius: 16px;
                     padding: 22px;
                     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12);
+                    /* keep the popup within the viewport and allow scrolling when content is tall */
+                    max-height: 90vh;
+                    overflow: auto;
+                    box-sizing: border-box;
+                    -webkit-overflow-scrolling: touch;
+                }
+                /* Wider layout only for signup mode */
+                .card.signup {
+                    width: min(92vw, 850px);
                 }
                 .card.compact {
                     padding: 16px;
@@ -252,6 +354,21 @@ export default function AuthForm({
                 .form {
                     display: grid;
                     gap: 12px;
+                }
+                .columns {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 18px;
+                }
+                .col {
+                    display: grid;
+                    gap: 12px;
+                }
+                /* Stack columns on small screens */
+                @media (max-width: 680px) {
+                    .columns {
+                        grid-template-columns: 1fr;
+                    }
                 }
                 .field {
                     display: grid;
