@@ -52,7 +52,7 @@ export default function AuthForm({
         try {
             const url =
                 mode === "signup"
-                    ? `${API_BASE}/auth/register`
+                    ? `${API_BASE}/auth/signup`
                     : `${API_BASE}/auth/login`;
 
             const res = await fetch(url, {

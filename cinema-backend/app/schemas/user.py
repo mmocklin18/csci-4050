@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, constr
 from typing import Optional
 from enum import Enum
 
@@ -21,6 +21,11 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     user_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 class Token(BaseModel):
     access_token: str

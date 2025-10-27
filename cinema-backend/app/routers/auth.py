@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.core.db import get_session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserRead, Token
+from app.schemas.user import UserCreate, UserRead, UserLogin, Token
 from app.core.security import get_password_hash, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -41,7 +41,7 @@ async def signup(payload: UserCreate, session: AsyncSession = Depends(get_sessio
     return user
 
 @router.post("/login", response_model=Token)
-async def login(payload: UserCreate, session: AsyncSession = Depends(get_session)):
+async def login(payload: UserLogin, session: AsyncSession = Depends(get_session)):
     # Find user by email
     result = await session.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
