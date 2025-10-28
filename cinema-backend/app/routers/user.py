@@ -1,7 +1,6 @@
 from fastapi import BackgroundTasks, APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import List
 from app.models.address import Address
 
 
@@ -11,7 +10,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.core.dependencies import get_current_user
 from app.core.security import verify_password, get_password_hash
-#from app.utils.email import send_profile_update_email
+from app.services.email_notifications import queue_profile_update_email
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -28,6 +27,7 @@ async def get_user_profile(
 @router.patch("/", response_model=UserRead)
 async def update_user_info(
     payload: UserUpdate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
@@ -37,19 +37,30 @@ async def update_user_info(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    changed_fields: list[str] = []
+
     # Update name and promo
-    if payload.first_name:
+    original_first = user.first_name
+    original_last = user.last_name
+    original_promo = user.promo
+    original_address_id = getattr(user, "address_id", None)
+
+    if payload.first_name and payload.first_name != original_first:
         user.first_name = payload.first_name
-    if payload.last_name:
+        changed_fields.append("first name")
+    if payload.last_name and payload.last_name != original_last:
         user.last_name = payload.last_name
-    if payload.promo is not None:
+        changed_fields.append("last name")
+    if payload.promo is not None and payload.promo != original_promo:
         user.promo = payload.promo
+        changed_fields.append("promotional email preference")
 
     # Handle password change
     if payload.new_password:
         if not payload.current_password or not verify_password(payload.current_password, user.password):
             raise HTTPException(status_code=403, detail="Current password is incorrect")
         user.password = get_password_hash(payload.new_password)
+        changed_fields.append("password")
 
     # Handle address update
     if payload.address:
@@ -79,8 +90,17 @@ async def update_user_info(
 
         # Link user to the address
         user.address_id = address.address_id
+        if user.address_id != original_address_id:
+            changed_fields.append("address")
 
     await db.commit()
     await db.refresh(user, ["address"])
-    return user
 
+    queue_profile_update_email(
+        background_tasks,
+        email=user.email,
+        first_name=user.first_name,
+        fields_changed=changed_fields,
+    )
+
+    return user

@@ -87,3 +87,43 @@ async def send_password_reset_email(
         email,
         body,
     )
+
+
+def queue_profile_update_email(
+    background_tasks: BackgroundTasks,
+    *,
+    email: str,
+    first_name: str | None,
+    fields_changed: list[str],
+) -> None:
+    if not fields_changed:
+        return
+    background_tasks.add_task(
+        send_profile_update_email,
+        email,
+        first_name,
+        fields_changed,
+    )
+
+
+async def send_profile_update_email(
+    email: str,
+    first_name: str | None,
+    fields_changed: list[str],
+) -> None:
+    greeting = f"Hi {first_name}," if first_name else "Hello,"
+    changes = ", ".join(fields_changed)
+    body = (
+        f"{greeting}\n\n"
+        "We wanted to let you know that the following details on your Cinema Booking profile were updated:\n"
+        f"- {changes}\n\n"
+        "If you made these changes, no further action is needed.\n"
+        "If you did not make this update, please reset your password immediately or contact support.\n\n"
+        "Thanks,\n"
+        "Cinema Booking Team"
+    )
+    await send_email(
+        "Your Cinema Booking profile was updated",
+        email,
+        body,
+    )

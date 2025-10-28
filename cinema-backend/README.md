@@ -47,6 +47,7 @@ uvicorn app.main:app --reload
   - `POST /auth/forgot-password` accepts `{ "email": "user@example.com" }` and always responds with 202 to avoid leaking account existence.
   - The backend emails a signed link (uid, timestamp, signature, purpose) to `PASSWORD_RESET_BASE_URL`.
   - `POST /auth/reset-password` consumes `{ uid, ts, sig, purpose, password }` from that link to update the credential.
+- Profile updates trigger an email notification summarising changed fields once `/user` `PATCH` succeeds.
 
 ### Project structure
 ```bash
@@ -61,4 +62,3 @@ cinema-backend/
 │── .env                 # environment variables (ignored in git)
 │── README.md            # project docs
 ```
-
