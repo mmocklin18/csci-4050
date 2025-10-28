@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, constr
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 #role options
@@ -36,10 +36,30 @@ class UserRead(UserBase):
     promo: Optional[bool] = None
     model_config = ConfigDict(from_attributes=True)
 
-
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+# class PaymentCard(BaseModel):
+#     card_type: constr(strip_whitespace=True, min_length=2)
+#     card_number: constr(strip_whitespace=True, min_length=2)
+#     expiration_date: str  
+#     billing_address: Optional[str]
+
+# class Address(BaseModel):
+#     street: str
+#     city: str
+#     state: str
+#     zip_code: int
+
+class UserUpdate(BaseModel):
+    first_name: Optional[str]
+    last_name: Optional[str]
+    address: Optional[str]
+    new_password: Optional[constr(min_length=8)]
+    current_password: Optional[str]
+    promotions: Optional[bool]
+
 
 class Token(BaseModel):
     access_token: str

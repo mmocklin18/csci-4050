@@ -18,7 +18,7 @@ class User(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(200), unique=True, nullable=False, index=True)
-    password = Column(String(100), nullable=False)  # will store the hashed password
+    password = Column(String(100), nullable=False)  
     type = Column(Enum(UserType), nullable=True)
     phoneno = Column(Integer, nullable=True)
     state = Column(Enum(StateType, name="user_state"), nullable=True, server_default=text("'Active'"))
