@@ -1,51 +1,74 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-interface FormInfo {
-  firstName: string;
-  lastName: string;
+
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+interface UserProfile {
+  first_name: string;
+  last_name: string;
   email: string;
-  billingAddress: string;
-  password: string; // new password
-  currentPassword?: string; // current password if changing
-  promotions: boolean;
+  address: Address | null;
+  promo: boolean;
 }
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const [formInfo, setFormInfo] = useState<FormInfo>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    billingAddress: "",
-    password: "",
-    currentPassword: "",
-    promotions: false,
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    street: "",
+    city: "",
+    state: "",
+    zip: "",
+    new_password: "",
+    current_password: "",
+    promo: false,
   });
-
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await fetch("/api/profile");
-        if (res.ok) {
-          const data = await res.json();
-          setFormInfo({
-            firstName: data.first_name ?? "",
-            lastName: data.last_name ?? "",
-            email: data.email ?? "",
-            billingAddress: data.address ?? "",
-            password: "",
-            currentPassword: "",
-            promotions: !!data.promotions,
-          });
-        } else {
-          console.error("Failed to fetch profile:", res.status);
+        const token = localStorage.getItem("auth_token");
+        if (!token) {
+          router.push("/");
+          return;
         }
+
+        const res = await fetch(`${API_BASE}/user/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const data = await res.json();
+
+        setProfile(data);
+        setForm({
+          first_name: data.first_name ?? "",
+          last_name: data.last_name ?? "",
+          street: data.address?.street ?? "",
+          city: data.address?.city ?? "",
+          state: data.address?.state ?? "",
+          zip: data.address?.zip ?? "",
+          new_password: "",
+          current_password: "",
+          promo: !!data.promo,
+        });
       } catch (err) {
         console.error("Error fetching profile:", err);
       } finally {
@@ -54,166 +77,242 @@ export default function EditProfilePage() {
     }
 
     fetchProfile();
-  }, []);
+  }, [API_BASE, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!formInfo.firstName || !formInfo.lastName || !formInfo.billingAddress) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    if (formInfo.password && !formInfo.currentPassword) {
-      alert("Please enter your current password to change your password.");
-      return;
-    }
+    const token = localStorage.getItem("auth_token");
+    if (!token) return alert("Not authenticated");
 
     try {
-      const res = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      setSaving(true);
+      const res = await fetch(`${API_BASE}/user/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          first_name: formInfo.firstName,
-          last_name: formInfo.lastName,
-          address: formInfo.billingAddress,
-          new_password: formInfo.password || undefined,
-          current_password: formInfo.password ? formInfo.currentPassword : undefined,
-          promotions: formInfo.promotions ? 1 : 0,
-        }),
+        first_name: form.first_name,
+        last_name: form.last_name,
+        address: {
+          street: form.street,
+          city: form.city,
+          state: form.state,
+          zip: form.zip,
+        },
+        new_password: form.new_password || undefined,
+        current_password: form.new_password ? form.current_password : undefined,
+        promo: form.promo,
+      }),
+
       });
 
       if (res.ok) {
         alert("Profile updated successfully!");
         router.push("/profile");
       } else {
-        const errMsg = await res.text();
-        alert("Failed to update profile: " + errMsg);
+        const err = await res.text();
+        alert("Update failed: " + err);
       }
     } catch (err) {
       console.error("Error updating profile:", err);
       alert("An error occurred while updating your profile.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div style={{ textAlign: "center", marginTop: "50px", color: "black" }}>
         Loading profile...
       </div>
     );
-  }
+
+  if (!profile)
+    return (
+      <div style={{ textAlign: "center", marginTop: "50px", color: "black" }}>
+        Failed to load profile.
+      </div>
+    );
 
   return (
     <div
       style={{
         backgroundColor: "#fff",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        margin: 0,
+        minHeight: "100vh",
+        color: "black",
         overflowY: "auto",
       }}
     >
       <Navbar />
+
       <h1
         style={{
           marginTop: "30px",
           fontSize: "24px",
           fontWeight: "bold",
-          color: "black",
-          marginBottom: "16px",
           textAlign: "center",
         }}
       >
         Edit Profile
       </h1>
 
-      <form
-        onSubmit={handleSubmit}
+      <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "10px",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          gap: "40px",
+          padding: "20px",
+          flexWrap: "wrap",
         }}
       >
-        <input
-          type="text"
-          placeholder="First Name"
-          value={formInfo.firstName}
-          onChange={(e) =>
-            setFormInfo({ ...formInfo, firstName: e.target.value })
-          }
-          style={inputStyle}
-        />
-        <input
-          type="text"
-          placeholder="Last Name"
-          value={formInfo.lastName}
-          onChange={(e) =>
-            setFormInfo({ ...formInfo, lastName: e.target.value })
-          }
-          style={inputStyle}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={formInfo.email}
-          disabled
-          style={{ ...inputStyle, backgroundColor: "#f2f2f2" }}
-        />
-        <textarea
-          placeholder="Billing Address"
-          value={formInfo.billingAddress}
-          onChange={(e) =>
-            setFormInfo({ ...formInfo, billingAddress: e.target.value })
-          }
-          style={{ ...inputStyle, height: "80px" }}
-        />
+        {/* CURRENT INFO PANEL */}
+        <div
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            padding: "20px",
+            width: "300px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3 style={{ textAlign: "center" }}>Current Info</h3>
+          <p>
+            <strong>First Name:</strong> {profile.first_name}
+          </p>
+          <p>
+            <strong>Last Name:</strong> {profile.last_name}
+          </p>
+          <p>
+            <strong>Email:</strong> {profile.email}
+          </p>
+          <div>
+            <strong>Address:</strong>{" "}
+            {profile.address ? (
+              <span>
+                {profile.address.street}, {profile.address.city}, {profile.address.state}{" "}
+                {profile.address.zip}
+              </span>
+            ) : (
+              <span>No address on file</span>
+            )}
+          </div>
 
-        <input
-          type="password"
-          placeholder="New Password (leave blank to keep current)"
-          value={formInfo.password}
-          onChange={(e) =>
-            setFormInfo({ ...formInfo, password: e.target.value })
-          }
-          style={{ ...inputStyle, width: "350px" }}
-        />
+          <p>
+            <strong>Promotions:</strong>{" "}
+            {profile.promo ? "Subscribed" : "Unsubscribed"}
+          </p>
+        </div>
 
-        {/* Current Password field shows only if user typed a new password */}
-        {formInfo.password && (
+        {/* EDIT FORM PANEL */}
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            padding: "20px",
+            width: "350px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3>Edit Info</h3>
+          <input
+            type="text"
+            placeholder="First Name"
+            value={form.first_name}
+            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+            style={inputStyle}
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={form.last_name}
+            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+            style={inputStyle}
+          />
+          <h4>Billing Address</h4>
+            <input
+              type="text"
+              placeholder="Street"
+              value={form.street}
+              onChange={(e) => setForm({ ...form, street: e.target.value })}
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="City"
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="State"
+              value={form.state}
+              onChange={(e) => setForm({ ...form, state: e.target.value })}
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="ZIP"
+              value={form.zip}
+              onChange={(e) => setForm({ ...form, zip: e.target.value })}
+              style={inputStyle}
+            />
+
           <input
             type="password"
-            placeholder="Current Password"
-            required
-            value={formInfo.currentPassword}
+            placeholder="New Password (optional)"
+            value={form.new_password}
             onChange={(e) =>
-              setFormInfo({ ...formInfo, currentPassword: e.target.value })
+              setForm({ ...form, new_password: e.target.value })
             }
-            style={{ ...inputStyle, width: "350px" }}
+            style={{ ...inputStyle, width: "100%" }}
           />
-        )}
 
-        <label style={{ color: "black" }}>
-          <input
-            type="checkbox"
-            checked={formInfo.promotions}
-            onChange={(e) =>
-              setFormInfo({ ...formInfo, promotions: e.target.checked })
-            }
-            style={{ marginRight: "8px" }}
-          />
-          Receive promotional emails
-        </label>
+          {form.new_password && (
+            <input
+              type="password"
+              placeholder="Current Password"
+              required
+              value={form.current_password}
+              onChange={(e) =>
+                setForm({ ...form, current_password: e.target.value })
+              }
+              style={{ ...inputStyle, width: "100%" }}
+            />
+          )}
 
-        <button type="submit" style={buttonStyle}>
-          Save Changes
-        </button>
-      </form>
+          <label style={{ color: "black" }}>
+            <input
+              type="checkbox"
+              checked={form.promo}
+              onChange={(e) => setForm({ ...form, promo: e.target.checked })}
+              style={{ marginRight: "8px" }}
+            />
+            Receive promotional emails
+          </label>
+
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              ...buttonStyle,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -232,5 +331,4 @@ const buttonStyle = {
   border: "none",
   backgroundColor: "#000",
   color: "white",
-  cursor: "pointer",
 };

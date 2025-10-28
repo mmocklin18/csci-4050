@@ -5,12 +5,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
 interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
-  address: string;
-  promotions: boolean;
+  address: Address | null;
+  promo: boolean;
 }
 
 export default function ProfilePage() {
@@ -21,7 +28,20 @@ export default function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const res = await fetch("/api/profile");
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        router.push("/");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/user/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
         if (res.ok) {
           const data = await res.json();
           setProfile(data);
@@ -93,12 +113,21 @@ export default function ProfilePage() {
         <p>
           <strong>Email:</strong> {profile.email}
         </p>
-        <p>
-          <strong>Billing Address:</strong> {profile.address}
-        </p>
+        <div>
+          <strong>Billing Address:</strong>{" "}
+          {profile.address ? (
+            <span>
+              {profile.address.street}, {profile.address.city}, {profile.address.state}{" "}
+              {profile.address.zip}
+            </span>
+          ) : (
+            <span>No address on file</span>
+          )}
+        </div>
+
         <p>
           <strong>Promotions:</strong>{" "}
-          {profile.promotions ? "Subscribed" : "Unsubscribed"}
+          {profile.promo ? "Subscribed" : "Unsubscribed"}
         </p>
 
         <button

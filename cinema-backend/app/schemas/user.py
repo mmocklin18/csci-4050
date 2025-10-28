@@ -1,6 +1,8 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, constr
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
+from app.schemas.address import AddressRead, AddressCreate
+
 
 #role options
 class UserType(str, Enum):
@@ -28,18 +30,32 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     user_id: int
-    # phoneno stored as integer in the model/table
+    first_name: str
+    last_name: str
+    email: EmailStr
+    type: Optional[str] = None
     phoneno: Optional[int] = None
-    # state enum
-    state: Optional[StateType] = None
-    # promo stored as tinyint -> boolean
+    state: Optional[str] = None
     promo: Optional[bool] = None
+    address: Optional[AddressRead]
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+
+class UserUpdate(BaseModel):
+   first_name: Optional[str] = None
+   last_name: Optional[str] = None
+   address: Optional[AddressCreate] = None
+   new_password: Optional[constr(min_length=8)] = None
+   current_password: Optional[str] = None
+   promo: Optional[bool] = None
+
 
 class Token(BaseModel):
     access_token: str
