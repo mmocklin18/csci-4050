@@ -24,6 +24,7 @@ export default function AuthForm({
     const [mode, setMode] = useState<AuthMode>(initialMode);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     const [promoOptIn, setPromoOptIn] = useState(false);
     const [userType, setUserType] = useState<string>("customer");
     const [addAddress, setAddAddress] = useState<boolean>(false);
@@ -45,6 +46,24 @@ export default function AuthForm({
     const dateRef = useRef<HTMLInputElement>(null);
     const cvcRef = useRef<HTMLInputElement>(null);
 
+    const clearFormFields = () => {
+        firstRef.current && (firstRef.current.value = "");
+        lastRef.current && (lastRef.current.value = "");
+        emailRef.current && (emailRef.current.value = "");
+        passRef.current && (passRef.current.value = "");
+        phoneRef.current && (phoneRef.current.value = "");
+        streetRef.current && (streetRef.current.value = "");
+        cityRef.current && (cityRef.current.value = "");
+        stateRef.current && (stateRef.current.value = "");
+        zipRef.current && (zipRef.current.value = "");
+        cardRef.current && (cardRef.current.value = "");
+        dateRef.current && (dateRef.current.value = "");
+        cvcRef.current && (cvcRef.current.value = "");
+        setAddAddress(false);
+        setAddPayment(false);
+        setPromoOptIn(false);
+    };
+
     const API_BASE = useMemo(
         () =>
             apiBase ||
@@ -55,11 +74,10 @@ export default function AuthForm({
         [apiBase]
     );
 
-    const url = `${API_BASE}/auth/signup`;
-
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setErr(null);
+        setSuccess(null);
         setLoading(true);
 
         try {
@@ -111,13 +129,26 @@ export default function AuthForm({
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 setErr(typeof data?.detail === "string" ? data.detail : data?.message || "Request failed");
+                setSuccess(null);
+                return;
+            }
+
+            if (mode === "signup") {
+                const message =
+                    data?.message || "Account created! Please verify your email and then log in.";
+                localStorage.removeItem("auth_token");
+                localStorage.removeItem("auth_meta");
+                clearFormFields();
+                setSuccess(message);
+                setMode("login");
                 return;
             }
 
             const token = data.access_token || data.token || data.accessToken;
-            if (token) localStorage.setItem("auth_token", token);
-            // You can also tuck away userType/promo locally if you want
-            localStorage.setItem("auth_meta", JSON.stringify({ type: userType, promoOptIn }));
+            if (token) {
+                localStorage.setItem("auth_token", token);
+                localStorage.setItem("auth_meta", JSON.stringify({ type: userType, promoOptIn }));
+            }
 
             onSuccess?.({ token, user: data.user, raw: data });
             onClose?.();
@@ -135,14 +166,22 @@ export default function AuthForm({
                     <button
                         type="button"
                         className={`segBtn ${mode === "login" ? "active" : ""}`}
-                        onClick={() => setMode("login")}
+                        onClick={() => {
+                            setMode("login");
+                            setErr(null);
+                            setSuccess(null);
+                        }}
                     >
                         Log in
                     </button>
                     <button
                         type="button"
                         className={`segBtn ${mode === "signup" ? "active" : ""}`}
-                        onClick={() => setMode("signup")}
+                        onClick={() => {
+                            setMode("signup");
+                            setErr(null);
+                            setSuccess(null);
+                        }}
                     >
                         Sign up
                     </button>
@@ -152,6 +191,7 @@ export default function AuthForm({
             <h3 className="title">{mode === "login" ? "Welcome back" : "Create your account"}</h3>
 
             {err && <div className="alert">{err}</div>}
+            {success && <div className="success">{success}</div>}
 
             <form onSubmit={handleSubmit} className="form">
                 {mode === "signup" ? (
@@ -175,7 +215,7 @@ export default function AuthForm({
 
                             <label className="field">
                                 <span className="label">Phone Number<span className="required">*</span></span>
-                                <input ref={phoneRef} type="tel" placeholder="555-555-5555" required />
+                                <input ref={phoneRef} type="tel" placeholder="555-555-5555" />
                             </label>
                         </div>
 

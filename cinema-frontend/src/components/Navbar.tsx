@@ -22,8 +22,11 @@ export default function Navbar() {
         router.push("/");
     };
 
-    const handleSuccess = () => {
-        setAuthed(true);
+    const handleSuccess = (result?: { token?: string; user?: unknown; raw: any }) => {
+        const storedToken =
+            typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+        const hasToken = Boolean(result?.token || storedToken);
+        setAuthed(hasToken);
         setOpen(false);
     };
 
@@ -36,6 +39,14 @@ export default function Navbar() {
                 <div className="brand">BookMyShow</div>
 
                 <div className="authBtns">
+                    {authed && (
+                        <button
+                            onClick={() => router.push("/profile")}
+                            className="authBtn"
+                        >
+                            Profile
+                        </button>
+                    )}
                     {!authed ? (
                         <button onClick={() => setOpen(true)} className="authBtn">
                             Sign up / Log in
@@ -58,6 +69,10 @@ export default function Navbar() {
                             initialMode="login"
                             onSuccess={handleSuccess}
                             onClose={() => setOpen(false)}
+                            onForgotPassword={() => {
+                                setOpen(false);
+                                router.push("/forgot-password");
+                            }}
                         />
                     </div>
                 </div>

@@ -28,6 +28,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class SignupResponse(BaseModel):
+    message: str
+    user_id: int
+
 class UserRead(UserBase):
     user_id: int
     first_name: str
@@ -59,3 +63,15 @@ class UserUpdate(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    uid: int
+    ts: int
+    sig: str
+    purpose: str = "password_reset"
+    password: constr(min_length=8)
