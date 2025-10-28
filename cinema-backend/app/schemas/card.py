@@ -7,6 +7,7 @@ class CardBase(BaseModel):
     number: str
     billing_add: str
     exp_date: date
+    cvc: str
     customerid: int
 
 # for card creation (POST)

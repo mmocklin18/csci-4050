@@ -39,6 +39,14 @@ export default function Navbar() {
                 <div className="brand">BookMyShow</div>
 
                 <div className="authBtns">
+                    {authed && (
+                        <button
+                            onClick={() => router.push("/profile")}
+                            className="authBtn"
+                        >
+                            Profile
+                        </button>
+                    )}
                     {!authed ? (
                         <button onClick={() => setOpen(true)} className="authBtn">
                             Sign up / Log in

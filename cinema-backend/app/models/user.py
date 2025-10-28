@@ -2,6 +2,8 @@
 from enum import Enum as PyEnum
 from sqlalchemy import Column, Integer, String, Boolean, Enum, text
 from app.core.db import Base
+from app.models.card import Card
+from sqlalchemy.orm import relationship 
 from app.schemas.user import UserType  # reuse your enum
 
 
@@ -23,3 +25,5 @@ class User(Base):
     phoneno = Column(Integer, nullable=True)
     state = Column(Enum(StateType, name="user_state"), nullable=True, server_default=text("'Active'"))
     promo = Column(Boolean, nullable=True, server_default=text('0'))
+    
+    cards = relationship("Card", back_populates="user", cascade="all, delete")

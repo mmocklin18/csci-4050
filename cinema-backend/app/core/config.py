@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     VERIFICATION_TTL_HOURS: int = 24
     PASSWORD_RESET_BASE_URL: str | None = None
     PASSWORD_RESET_TTL_HOURS: int = 1
+    # Encryption
+    ENCRYPTION_KEY: str  
 
     class Config:
         env_file = ".env"
