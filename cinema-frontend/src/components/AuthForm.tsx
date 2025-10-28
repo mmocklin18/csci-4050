@@ -253,7 +253,7 @@ export default function AuthForm({
 
                 <label className="field">
                     <span className="label">Password<span className="required">*</span></span>
-                    <input ref={passRef} type="password" placeholder="••••••••" minLength={6} required />
+                    <input ref={passRef} type="password" placeholder="type password here" minLength={6} required />
                 </label>
 
                 {mode === "login" && (
@@ -339,6 +339,7 @@ export default function AuthForm({
                     margin: 6px 0 14px;
                     font-size: 20px;
                     font-weight: 800;
+                    color: black;
                 }
 
                 .alert {

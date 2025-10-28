@@ -61,6 +61,13 @@ export default function ForgotPasswordPage() {
               placeholder="you@example.com"
               required
             />
+            <span className="new password"></span>
+            <input 
+              type="password"
+              placeholder="New Password"
+              minLength={6}
+              required
+            />
           </label>
 
           <button className="primary" disabled={loading}>
