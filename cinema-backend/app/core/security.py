@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from jose import jwt, JWTError
+from cryptography.fernet import Fernet
 from app.core.config import settings  # use settings instead of os.environ
 
 #Password hashing
@@ -25,3 +26,11 @@ def decode_access_token(token: str) -> dict:
         return payload
     except JWTError:
         raise
+
+#Credit card encryption
+fernet = Fernet(settings.ENCRYPTION_KEY.encode())
+def encrypt_data(card_number: str) -> str:
+    return fernet.encrypt(card_number.encode()).decode()
+
+def decrypt_data(encrypted_card_number: str) -> str:
+    return fernet.decrypt(encrypted_card_number.encode()).decode()

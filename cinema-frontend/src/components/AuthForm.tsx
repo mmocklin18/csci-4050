@@ -175,7 +175,7 @@ export default function AuthForm({
 
                             <label className="field">
                                 <span className="label">Phone Number<span className="required">*</span></span>
-                                <input ref={phoneRef} type="tel" placeholder="555-555-5555" required />
+                                <input ref={phoneRef} type="tel" placeholder="555-555-5555" />
                             </label>
                         </div>
 

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     JWT_ALGO: str = "HS256"
     JWT_EXPIRES_MINS: int = 30
 
+    # Encryption
+    ENCRYPTION_KEY: str  
+
     class Config:
         env_file = ".env"
 
