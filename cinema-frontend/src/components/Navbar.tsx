@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
 
 export default function Navbar() {
     const [authed, setAuthed] = useState(false);
     const [open, setOpen] = useState(false);
+    const router = useRouter();
 
     // check auth token
     useEffect(() => {
@@ -17,6 +19,7 @@ export default function Navbar() {
         localStorage.removeItem("auth_token");
         localStorage.removeItem("auth_user");
         setAuthed(false);
+        router.push("/");
     };
 
     const handleSuccess = () => {
@@ -27,6 +30,9 @@ export default function Navbar() {
     return (
         <>
             <header className="navbar">
+                <button onClick={() => router.push("/")} className="homeBtn">
+                Home
+                </button>
                 <div className="brand">BookMyShow</div>
 
                 <div className="authBtns">
@@ -75,6 +81,23 @@ export default function Navbar() {
                     font-weight: 1000;
                     font-size: 24px;
                     letter-spacing: 0.4px;
+                }
+                
+                .homeBtn {
+                    background: transparent;
+                    color: #fff;
+                    border: 1px solid #fff;
+                    border-radius: 8px;
+                    padding: 4px 10px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                 }
+
+                .homeBtn:hover {
+                    background: #fff;
+                    color: #000;
                 }
 
                 .authBtns {
