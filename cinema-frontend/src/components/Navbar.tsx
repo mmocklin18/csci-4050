@@ -22,8 +22,11 @@ export default function Navbar() {
         router.push("/");
     };
 
-    const handleSuccess = () => {
-        setAuthed(true);
+    const handleSuccess = (result?: { token?: string; user?: unknown; raw: any }) => {
+        const storedToken =
+            typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+        const hasToken = Boolean(result?.token || storedToken);
+        setAuthed(hasToken);
         setOpen(false);
     };
 
@@ -58,6 +61,10 @@ export default function Navbar() {
                             initialMode="login"
                             onSuccess={handleSuccess}
                             onClose={() => setOpen(false)}
+                            onForgotPassword={() => {
+                                setOpen(false);
+                                router.push("/forgot-password");
+                            }}
                         />
                     </div>
                 </div>

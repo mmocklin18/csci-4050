@@ -33,6 +33,7 @@ export default function ForgotPasswordPage() {
         return;
       }
       setMessage(data?.message || "If that address exists we'll send password reset instructions shortly.");
+      setEmail("");
     } catch (ex: any) {
       setError(ex?.message || "Network error");
     } finally {
@@ -59,13 +60,6 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              required
-            />
-            <span className="new password"></span>
-            <input 
-              type="password"
-              placeholder="New Password"
-              minLength={6}
               required
             />
           </label>
