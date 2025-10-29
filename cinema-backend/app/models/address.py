@@ -12,6 +12,8 @@ class Address(Base):
     zip = Column(String(10), nullable=True)
 
     users = relationship("User", back_populates="address")
+    cards = relationship("Card", back_populates="address")
+
 
     def __repr__(self):
         return f"<Address(id={self.address_id}, street='{self.street}', city='{self.city}', state='{self.state}', zip='{self.zip}')>"

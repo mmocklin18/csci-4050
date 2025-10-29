@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, constr
 from typing import Optional, List
 from enum import Enum
 from app.schemas.address import AddressRead, AddressCreate
+from app.schemas.card import CardCreate
 
 
 #role options
@@ -27,6 +28,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    address: Optional[AddressCreate] = None
+    payment_method: Optional[CardCreate] = None
 
 class SignupResponse(BaseModel):
     message: str
@@ -41,7 +44,7 @@ class UserRead(UserBase):
     phoneno: Optional[int] = None
     state: Optional[str] = None
     promo: Optional[bool] = None
-    address: Optional[AddressRead]
+    address: Optional[AddressRead] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +66,8 @@ class UserUpdate(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    token_type: str
+    user :Optional[UserRead] = None
 
 
 class PasswordResetRequest(BaseModel):

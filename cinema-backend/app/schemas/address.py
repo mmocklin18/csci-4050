@@ -15,3 +15,4 @@ class AddressRead(AddressBase):
 
     class Config:
         orm_mode = True
+

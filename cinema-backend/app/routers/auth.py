@@ -45,11 +45,53 @@ async def signup(
         email=payload.email,
         password=get_password_hash(payload.password),
         type=None,
+        promo=False,
     )
 
     session.add(user)
+    await session.flush()
+
+    # optional billing address 
+    if payload.address:
+        from app.models.address import Address
+
+        addr = Address(
+            street=payload.address.street,
+            city=payload.address.city,
+            state=payload.address.state,
+            zip=payload.address.zip,
+        )
+        session.add(addr)
+        await session.flush()
+        user.address_id = addr.address_id
+
+    # optional payment info
+    if payload.payment_method:
+        from app.models.card import Card
+        from datetime import datetime, date
+
+        card_info = payload.payment_method
+        if isinstance(card_info.exp_date, str):
+            try:
+                exp_date = datetime.strptime(card_info.exp_date, "%m/%Y").date()
+            except ValueError:
+                exp_date = date.fromisoformat(card_info.exp_date)
+        else:
+            exp_date = card_info.exp_date
+
+        card = Card(
+            number=card_info.number,
+            address_id=user.address_id or addr.address_id,
+            exp_date=exp_date,
+            customer_id=user.user_id,
+            cvc=card_info.cvc,
+        )
+        card.encrypt_sensitive_fields()
+        session.add(card)
+
     await session.commit()
     await session.refresh(user)
+
 
     queue_verification_email(
         background_tasks,
@@ -82,7 +124,16 @@ async def login(payload: UserLogin, session: AsyncSession = Depends(get_session)
         )
 
     token = create_access_token(subject=user.user_id)
-    return {"access_token": token}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": user.user_id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        },
+    }
 
 
 @router.get("/verify")

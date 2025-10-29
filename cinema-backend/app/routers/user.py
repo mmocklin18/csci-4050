@@ -51,11 +51,11 @@ async def update_user_info(
             raise HTTPException(status_code=403, detail="Current password is incorrect")
         user.password = get_password_hash(payload.new_password)
 
-    # Handle address update
+    #  Handl address update
     if payload.address:
         addr_data = payload.address
 
-        # Try to find an existing address with same fields
+        # find any existing address with the same fields or create new one
         result = await db.execute(
             select(Address).filter(
                 Address.street == addr_data.street,
@@ -64,10 +64,13 @@ async def update_user_info(
                 Address.zip == addr_data.zip,
             )
         )
-        address = result.scalar_one_or_none()
+        addresses = result.scalars().all()
 
-        # Create new if not found
-        if not address:
+        if addresses:
+            # Reuse the first matching one (multiple are fine)
+            address = addresses[0]
+        else:
+            # Create new address entry if none found
             address = Address(
                 street=addr_data.street,
                 city=addr_data.city,
@@ -75,12 +78,11 @@ async def update_user_info(
                 zip=addr_data.zip,
             )
             db.add(address)
-            await db.flush()  # assign address_id
+            await db.flush()  
 
-        # Link user to the address
+        # Link user to the chosen address
         user.address_id = address.address_id
 
     await db.commit()
     await db.refresh(user, ["address"])
     return user
-
