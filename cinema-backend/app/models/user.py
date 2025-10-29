@@ -24,5 +24,8 @@ class User(Base):
     phoneno = Column(Integer, nullable=True)
     state = Column(Enum(StateType, name="user_state"), nullable=True, server_default=text("'Active'"))
     promo = Column(Boolean, nullable=True, server_default=text('0'))
+    address_id = Column(Integer, ForeignKey("address.address_id"))
+
     
-    cards = relationship("Card", back_populates="user", cascade="all, delete")
+    address = relationship("Address", back_populates="users")
+    cards = relationship("Card", back_populates="user", cascade="all, delete-orphan")

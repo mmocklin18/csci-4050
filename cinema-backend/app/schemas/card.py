@@ -1,14 +1,14 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import date
-from typing import Optional
+from typing import Optional, Union
 
 # shared fields
 class CardBase(BaseModel):
     number: str
-    billing_add: str
-    exp_date: date
+    address_id: Optional[int] = None
+    exp_date: Union[str, date]          
     cvc: str
-    customerid: int
+    customer_id: Optional[int] = None 
 
 # for card creation (POST)
 class CardCreate(CardBase):
@@ -16,6 +16,5 @@ class CardCreate(CardBase):
 
 # for reading card from DB (GET)
 class CardRead(CardBase):
-    card_id: int   # assuming the PK column is called card_id
-    
+    card_id: int   
     model_config = ConfigDict(from_attributes=True)

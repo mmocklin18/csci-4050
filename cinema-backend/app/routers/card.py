@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.core.db import get_session
 from app.models.card import Card
 from app.schemas.card import CardCreate, CardRead
 from app.core.security import encrypt_data, decrypt_data
+from datetime import datetime, date
+
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
@@ -13,18 +15,44 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 async def create_card(payload: CardCreate, session: AsyncSession = Depends(get_session)):
     """Create a new payment card for a customer."""
 
+    count_result = await session.execute(
+        select(func.count()).select_from(Card).where(Card.customer_id == payload.customer_id)
+    )
+    card_count = count_result.scalar_one()
+
+    if card_count >= 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can only store up to 4 cards per user."
+        )
+    
+    exp_input = payload.exp_date
+    if isinstance(exp_input, str):
+        try:
+            # case: "YYYY-MM" (from <input type='month'>)
+            if "-" in exp_input and len(exp_input) == 7:
+                exp_date = datetime.strptime(exp_input, "%Y-%m").date()
+            # case: "MM/YYYY" (common manual entry)
+            elif "/" in exp_input:
+                exp_date = datetime.strptime(exp_input, "%m/%Y").date()
+            else:
+                exp_date = datetime.fromisoformat(exp_input).date()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid expiration date format")
+    else:
+        exp_date = exp_input
+
     # Encrypt sensitive fields before storing
     encrypted_number = encrypt_data(payload.number)
     encrypted_cvc = encrypt_data(str(payload.cvc))  
 
     card = Card(
         number=encrypted_number,
-        billing_add=payload.billing_add,
-        exp_date=payload.exp_date,
-        customerid=payload.customerid,
+        address_id=payload.address_id,
+        exp_date=exp_date,
+        customer_id=payload.customer_id,
         cvc=encrypted_cvc
     )
-    card.encrypt_sensitive_fields()
 
     session.add(card)
     await session.commit()
@@ -35,6 +63,18 @@ async def create_card(payload: CardCreate, session: AsyncSession = Depends(get_s
     card.cvc = decrypt_data(card.cvc)
 
     return card
+
+@router.get("/user/{user_id}", response_model=list[CardRead])
+async def list_user_cards(user_id: int, session: AsyncSession = Depends(get_session)):
+    """Fetch all cards for a given user (decrypt before returning)."""
+    result = await session.execute(select(Card).where(Card.customer_id == user_id))
+    cards = result.scalars().all()
+
+    for card in cards:
+        card.number = decrypt_data(card.number)
+        card.cvc = decrypt_data(card.cvc)
+
+    return cards
 
 
 @router.get("/{card_id}", response_model=CardRead)

@@ -107,8 +107,9 @@ export default function AuthForm({
                     }
                     if (addPayment) {
                         body.payment_method = {
-                            card_number: cardRef.current?.value?.trim() || "",
-                            expiration:  dateRef.current?.value?.trim() || "",
+                            number: cardRef.current?.value?.trim() || "",
+                            billing_add: null,
+                            exp_date:  dateRef.current?.value?.trim() || "",
                             cvc:         cvcRef.current?.value?.trim() || "",
                         };
                     }
@@ -148,6 +149,8 @@ export default function AuthForm({
             if (token) {
                 localStorage.setItem("auth_token", token);
                 localStorage.setItem("auth_meta", JSON.stringify({ type: userType, promoOptIn }));
+                localStorage.setItem("user_id", data.user.user_id.toString());
+
             }
 
             onSuccess?.({ token, user: data.user, raw: data });
@@ -268,11 +271,17 @@ export default function AuthForm({
                                         <span className="label">Payment Card Number</span>
                                         <input ref={cardRef} placeholder="4242 4242 4242 4242" required={addPayment} />
                                     </label>
-
                                     <label className="field">
-                                        <span className="label">Expiration Date</span>
-                                        <input ref={dateRef} placeholder="01/2000" required={addPayment} />
+                                        <span className="label">Expiration Date (MM/YYYY)</span>
+                                        <input
+                                            ref={dateRef}
+                                            placeholder="01/2028"
+                                            pattern="^(0[1-9]|1[0-2])\/\d{4}$"
+                                            title="Enter expiration date as MM/YYYY (e.g. 05/2027)"
+                                            required={addPayment}
+                                        />
                                     </label>
+
 
                                     <label className="field">
                                         <span className="label">CVC</span>
