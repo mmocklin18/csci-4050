@@ -180,6 +180,32 @@ export default function EditProfilePage() {
     }
   };
 
+  const handleDeleteCard = async (cardId: number) => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return alert("Not authenticated");
+
+    if (!confirm("Remove this card?")) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/cards/${cardId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setCards((prev) => prev.filter((card) => card.card_id !== cardId));
+      } else {
+        const errText = await res.text();
+        alert(`Error removing card: ${errText}`);
+      }
+    } catch (err) {
+      console.error("Error removing card:", err);
+      alert("An error occurred removing the card.");
+    }
+  };
+
   // Loading & error states
   if (loading)
     return (
@@ -283,10 +309,23 @@ export default function EditProfilePage() {
               <p>No cards on file.</p>
             ) : (
               cards.map((c) => (
-                <p key={c.card_id}>
-                  •••• {c.number.slice(-4)} (exp{" "}
-                  {new Date(c.exp_date).getFullYear()})
-                </p>
+                <div key={c.card_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span>
+                    •••• {c.number.slice(-4)} (exp {new Date(c.exp_date).getFullYear()})
+                  </span>
+                  <button
+                    onClick={() => handleDeleteCard(c.card_id)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#e11d48",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
               ))
             )}
 
