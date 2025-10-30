@@ -126,12 +126,14 @@ async def login(payload: UserLogin, session: AsyncSession = Depends(get_session)
     token = create_access_token(subject=user.user_id)
     return {
         "access_token": token,
+        "token": token,
         "token_type": "bearer",
         "user": {
             "user_id": user.user_id,
             "email": user.email,
             "first_name": user.first_name,
-            "last_name": user.last_name,
+            "last_name": user.last_name,    
+            "type": user.type
         },
     }
 
