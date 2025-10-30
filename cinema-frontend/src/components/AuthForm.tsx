@@ -148,7 +148,7 @@ export default function AuthForm({
             const token = data.access_token || data.token || data.accessToken;
             if (token) {
                 localStorage.setItem("auth_token", token);
-                localStorage.setItem("auth_meta", JSON.stringify({ type: userType, promoOptIn }));
+                localStorage.setItem("auth_meta", JSON.stringify({ type: data.user.type, promoOptIn }));
                 localStorage.setItem("user_id", data.user.user_id.toString());
 
             }
