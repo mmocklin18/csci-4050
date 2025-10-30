@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.core.db import get_session
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.core.verification import VerificationParams, validate_verification_params
-from app.models.user import User
+from app.models.user import StateType, User
 from app.schemas.user import (
     PasswordResetConfirm,
     PasswordResetRequest,
@@ -44,7 +44,8 @@ async def signup(
         last_name=payload.last_name,
         email=payload.email,
         password=get_password_hash(payload.password),
-        type=None,
+        type=UserType.customer,
+        state=StateType.Inactive,
         promo=bool(payload.promo),
     )
 
@@ -117,7 +118,7 @@ async def login(payload: UserLogin, session: AsyncSession = Depends(get_session)
             detail="Invalid credentials",
         )
 
-    if user.type is None:
+    if user.state != StateType.Active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account pending email verification",
@@ -168,10 +169,10 @@ async def verify_email(
             detail=str(exc),
         ) from exc
 
-    if user.type == UserType.customer:
+    if user.state == StateType.Active:
         return {"message": "Account already verified"}
 
-    user.type = UserType.customer
+    user.state = StateType.Active
     session.add(user)
     await session.commit()
 
