@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
 export default function AdminPage() {
     const [userType, setUserType] = useState<string | null>(null);
+    const router = useRouter();
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -14,15 +16,15 @@ export default function AdminPage() {
                 const parsedMeta = JSON.parse(meta);
                 setUserType(parsedMeta.type || null);
                 if (parsedMeta.type !== "admin") {
-                    window.location.href = "/";
+                    router.push("/");
                 }
             } catch {
-                window.location.href = "/";
+                router.push("/");
             }
         } else {
-            window.location.href = "/";
+            router.push("/");;
         }
-    }, []);
+    }, [router]);
 
     if (userType !== "admin") return <div>Loading...</div>;
 
