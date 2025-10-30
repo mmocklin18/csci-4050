@@ -45,7 +45,7 @@ async def signup(
         email=payload.email,
         password=get_password_hash(payload.password),
         type=None,
-        promo=False,
+        promo=bool(payload.promo),
     )
 
     session.add(user)

@@ -92,6 +92,7 @@ export default function AuthForm({
                     email:      emailRef.current?.value?.trim() || "",
                     password:   passRef.current?.value || "",
                     phone:      phoneRef.current?.value?.trim() || "",
+                    promo:      promoOptIn,
                     // we need to add address to backend only if its provided
                     //we need to send if the user wants to receive promotional emails to backend
                     // we need to add card info to backend only if its provided

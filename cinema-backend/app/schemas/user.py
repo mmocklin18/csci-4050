@@ -28,6 +28,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    promo: Optional[bool] = None
     address: Optional[AddressCreate] = None
     payment_method: Optional[CardCreate] = None
 
