@@ -133,3 +133,43 @@ async def send_profile_update_email(
         email,
         body,
     )
+
+
+def queue_payment_method_email(
+    background_tasks: BackgroundTasks,
+    *,
+    email: str,
+    first_name: str | None,
+    last_four: str,
+    action: str,
+) -> None:
+    background_tasks.add_task(
+        send_payment_method_email,
+        email,
+        first_name,
+        last_four,
+        action,
+    )
+
+
+async def send_payment_method_email(
+    email: str,
+    first_name: str | None,
+    last_four: str,
+    action: str,
+) -> None:
+    greeting = f"Hi {first_name}," if first_name else "Hello,"
+    body = (
+        f"{greeting}\n\n"
+        f"A payment method ending in ****{last_four} was {action} on your Cinema Booking account.\n"
+        "If you made this change, no further action is required.\n"
+        "If you did not update your payment details, please contact support immediately.\n\n"
+        "Thanks,\n"
+        "Cinema Booking Team"
+    )
+
+    await send_email(
+        "Your Cinema Booking payment method changed",
+        email,
+        body,
+    )

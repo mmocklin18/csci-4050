@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.db import get_session
@@ -6,13 +6,19 @@ from app.models.card import Card
 from app.schemas.card import CardCreate, CardRead
 from app.core.security import encrypt_data, decrypt_data
 from datetime import datetime, date
+from app.models.user import User
+from app.services.email_notifications import queue_payment_method_email
 
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
 
 @router.post("/", response_model=CardRead, status_code=201)
-async def create_card(payload: CardCreate, session: AsyncSession = Depends(get_session)):
+async def create_card(
+    payload: CardCreate,
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+):
     """Create a new payment card for a customer."""
 
     count_result = await session.execute(
@@ -58,6 +64,17 @@ async def create_card(payload: CardCreate, session: AsyncSession = Depends(get_s
     await session.commit()
     await session.refresh(card)
 
+    user = await session.get(User, payload.customer_id)
+    if user:
+        digits = "".join(ch for ch in str(payload.number) if ch.isdigit())
+        queue_payment_method_email(
+            background_tasks,
+            email=user.email,
+            first_name=user.first_name,
+            last_four=digits[-4:] if digits else "****",
+            action="added",
+        )
+
     # Decrypt before returning
     card.number = decrypt_data(card.number)
     card.cvc = decrypt_data(card.cvc)
@@ -91,4 +108,3 @@ async def get_card(card_id: int, session: AsyncSession = Depends(get_session)):
     card.cvc = decrypt_data(card.cvc)
 
     return card
-
