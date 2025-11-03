@@ -5,7 +5,7 @@ from typing import List
 
 from app.core.db import get_session
 from app.models.movie import Movie
-from app.schemas.movie import MovieRead
+from app.schemas.movie import MovieRead, MovieCreate
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
@@ -18,3 +18,17 @@ async def get_all_movies(db: AsyncSession = Depends(get_session)):
         return movies
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching all movies: {e}")
+
+@router.post("/", response_model=MovieRead, status_code=201)
+async def create_movie(movie: MovieCreate, db: AsyncSession = Depends(get_session)):
+    """Admin adds a new movie."""
+    try:
+        new_movie = Movie(**movie.model_dump())
+        db.add(new_movie)
+        await db.commit()
+        await db.refresh(new_movie)
+        return new_movie
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding movie: {e}")
+
