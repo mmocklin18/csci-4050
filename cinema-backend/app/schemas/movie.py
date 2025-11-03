@@ -16,7 +16,18 @@ class MovieBase(BaseModel):
 
 
 class MovieCreate(MovieBase):
-    pass
+    """Used when creating a new movie (Admin only)"""
+    name: str
+    description: Optional[str] = None
+    rating: Optional[str] = None
+    runtime: Optional[int] = None
+    release_date: Optional[datetime] = None
+    available: bool = True
+    poster: Optional[str] = None
+    trailer: Optional[str] = None
+    main_genre: Optional[str] = None
+
+    
 
 #used for outgoing data (GET /movies)
 class MovieRead(MovieBase):
