@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
@@ -26,6 +26,16 @@ async def get_movie(movie_id: int, db: AsyncSession = Depends(get_session)):
     if not movie:
         raise HTTPException(404, "Movie not found")
     return movie
+
+
+@router.delete("/{movie_id}", status_code=status.HTTP_200_OK)
+async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_session)):
+    movie = await db.get(Movie, movie_id)
+    if not movie:
+        raise HTTPException(404, "Movie not found")
+    await db.delete(movie)
+    await db.commit()
+    return {"message": f"Movie {movie_id} deleted successfully"}
 
 
 @router.post("/", response_model=MovieRead, status_code=201)
