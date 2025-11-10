@@ -7,18 +7,23 @@ interface Promotion {
   promotions_id: number;
   code: string;
   discount: number;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 export default function ManagePromotions() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const router = useRouter();
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "http://localhost:8000";
 
   useEffect(() => {
     async function fetchPromotions() {
       try {
-        const res = await fetch("http://localhost:8000/admin/promotions/");
+        const res = await fetch(`${API_BASE}/admin/promotions/`);
         if (!res.ok) throw new Error("Failed to fetch promotions");
         const data = await res.json();
         setPromotions(data);
@@ -29,6 +34,9 @@ export default function ManagePromotions() {
     fetchPromotions();
   }, []);
 
+  const formatDate = (value?: string | null) =>
+    value ? new Date(value).toLocaleDateString() : "N/A";
+
   const handleAddPromotion = () => {
     router.push("/admin/promotions/add");
   };
@@ -37,7 +45,7 @@ export default function ManagePromotions() {
     if (!confirm("Delete this promotion?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/admin/promotions/${id}/`, {
+      const res = await fetch(`${API_BASE}/admin/promotions/${id}`, {
         method: "DELETE",
       });
 
@@ -114,9 +122,11 @@ export default function ManagePromotions() {
                   }}
                 >
                   {p.code} — {p.discount}% off
-                  <div style={{ fontSize: "14px", color: "#555" }}>
-                    {p.start_date} to {p.end_date}
-                  </div>
+                  {(p.start_date || p.end_date) && (
+                    <div style={{ fontSize: "14px", color: "#555" }}>
+                      {formatDate(p.start_date)} to {formatDate(p.end_date)}
+                    </div>
+                  )}
                 </div>
 
                 <button

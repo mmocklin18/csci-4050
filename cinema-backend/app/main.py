@@ -9,6 +9,7 @@ from app.routers.booking import router as booking_router
 from app.routers.showroom import router as showroom_router
 from app.routers.show import router as show_router
 from app.routers.seat import router as seat_router
+from app.routers.promotions import router as promotions_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,6 +38,7 @@ app.include_router(showroom_router)
 app.include_router(show_router)
 app.include_router(seat_router)
 app.include_router(booking_router)
+app.include_router(promotions_router)
 
 
 @app.get("/")

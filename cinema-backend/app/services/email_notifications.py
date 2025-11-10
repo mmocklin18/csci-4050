@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import BackgroundTasks
 
 from app.core.config import settings
@@ -170,6 +172,62 @@ async def send_payment_method_email(
 
     await send_email(
         "Your Cinema Booking payment method changed",
+        email,
+        body,
+    )
+
+
+def queue_promotion_email(
+    background_tasks: BackgroundTasks,
+    *,
+    email: str,
+    first_name: str | None,
+    code: str,
+    discount: int,
+    start_date: date | None,
+    end_date: date | None,
+) -> None:
+    background_tasks.add_task(
+        send_promotion_email,
+        email,
+        first_name,
+        code,
+        discount,
+        start_date,
+        end_date,
+    )
+
+
+async def send_promotion_email(
+    email: str,
+    first_name: str | None,
+    code: str,
+    discount: int,
+    start_date: date | None,
+    end_date: date | None,
+) -> None:
+    greeting = f"Hi {first_name}," if first_name else "Hello,"
+
+    if start_date or end_date:
+        start_text = start_date.strftime("%B %d, %Y") if start_date else "now"
+        end_text = (
+            end_date.strftime("%B %d, %Y") if end_date else "further notice"
+        )
+        window = f"This offer runs from {start_text} through {end_text}."
+    else:
+        window = "This offer is available for a limited time."
+
+    body = (
+        f"{greeting}\n\n"
+        f"We have a new promotion just for you! Use code {code} to save {discount}% on your next booking.\n"
+        f"{window}\n\n"
+        "Log in to Cinema Booking to apply the code at checkout.\n\n"
+        "Thanks for being part of our community!\n"
+        "Cinema Booking Team"
+    )
+
+    await send_email(
+        "New Cinema Booking promotion",
         email,
         body,
     )

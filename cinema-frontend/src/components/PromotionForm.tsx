@@ -9,20 +9,28 @@ export default function PromotionForm() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const router = useRouter();
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "http://localhost:8000";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:8000/admin/promotions/", {
+      const payload: Record<string, unknown> = {
+        code: code.trim(),
+        discount: parseFloat(discount),
+      };
+
+      if (startDate) payload.start_date = startDate;
+      if (endDate) payload.end_date = endDate;
+
+      const res = await fetch(`${API_BASE}/admin/promotions/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          discount: parseFloat(discount),
-          start_date: startDate,
-          end_date: endDate,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Failed to add promotion");
@@ -173,7 +181,6 @@ export default function PromotionForm() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            required
             style={{
               padding: "8px",
               borderRadius: "8px",
@@ -209,7 +216,6 @@ export default function PromotionForm() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            required
             style={{
               padding: "8px",
               borderRadius: "8px",
