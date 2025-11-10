@@ -7,7 +7,7 @@ export default function AddMoviePage() {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    rating: "",
+    rating: "G",
     runtime: "",
     release_date: "",
     available: false,
@@ -17,9 +17,16 @@ export default function AddMoviePage() {
   });
 
   const router = useRouter();
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "http://localhost:8000";
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value, type } = e.target;
 
@@ -33,7 +40,7 @@ export default function AddMoviePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/movies", {
+      const res = await fetch(`${API_BASE}/movies`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -112,10 +119,9 @@ export default function AddMoviePage() {
             }}
           />
 
-          <input
+          <label style={{ color: "black" }}>Rating</label>
+          <select
             name="rating"
-            type="number"
-            placeholder="Rating"
             value={form.rating}
             onChange={handleChange}
             required
@@ -125,7 +131,13 @@ export default function AddMoviePage() {
               padding: "10px",
               color: "black",
             }}
-          />
+          >
+            {["G", "PG", "PG-13", "R", "NC-17"].map((rating) => (
+              <option key={rating} value={rating}>
+                {rating}
+              </option>
+            ))}
+          </select>
 
           <input
             name="runtime"

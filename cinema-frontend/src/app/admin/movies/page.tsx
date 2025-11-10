@@ -19,11 +19,16 @@ interface ApiMovie {
 export default function ManageMovies() {
   const [movies, setMovies] = useState<ApiMovie[]>([]);
   const router = useRouter();
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "http://localhost:8000";
 
   useEffect(() => {
     async function fetchMovies() {
       try {
-        const res = await fetch("http://localhost:8000/movies/");
+        const res = await fetch(`${API_BASE}/movies/`);
         if (!res.ok) throw new Error("Failed to fetch movies");
         const data = await res.json();
         setMovies(data);
@@ -42,7 +47,7 @@ export default function ManageMovies() {
     if (!confirm("Delete this movie?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/movies/${id}/`, {
+      const res = await fetch(`${API_BASE}/movies/${id}`, {
         method: "DELETE",
       });
 
