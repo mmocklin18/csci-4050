@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar";
 export default function PromotionForm() {
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,6 +20,8 @@ export default function PromotionForm() {
         body: JSON.stringify({
           code,
           discount: parseFloat(discount),
+          start_date: startDate,
+          end_date: endDate,
         }),
       });
 
@@ -133,6 +137,78 @@ export default function PromotionForm() {
             placeholder="e.g. 15"
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
+            required
+            style={{
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              backgroundColor: "#f9f9f9",
+              color: "black",
+              width: "220px",
+              textAlign: "center",
+            }}
+          />
+        </div>
+
+        {/* Start Date */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginBottom: "10px",
+            alignItems: "center",
+          }}
+        >
+          <label
+            style={{
+              fontWeight: "bold",
+              color: "black",
+              marginBottom: "5px",
+              fontSize: "15px",
+            }}
+          >
+            Start Date:
+          </label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+            style={{
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              backgroundColor: "#f9f9f9",
+              color: "black",
+              width: "220px",
+              textAlign: "center",
+            }}
+          />
+        </div>
+
+        {/* End Date */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginBottom: "10px",
+            alignItems: "center",
+          }}
+        >
+          <label
+            style={{
+              fontWeight: "bold",
+              color: "black",
+              marginBottom: "5px",
+              fontSize: "15px",
+            }}
+          >
+            End Date:
+          </label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
             required
             style={{
               padding: "8px",
