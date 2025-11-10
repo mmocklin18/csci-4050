@@ -22,7 +22,6 @@ class UserBase(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    # DDL allows NULL for `type`, so make this optional
     type: Optional[UserType] = None
 
 
