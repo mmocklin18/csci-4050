@@ -22,7 +22,7 @@ export default function AdminPage() {
                 router.push("/");
             }
         } else {
-            router.push("/");;
+            router.push("/");
         }
     }, [router]);
 
@@ -34,6 +34,72 @@ export default function AdminPage() {
             <main className="content">
                 <h1 className="title">Admin Dashboard</h1>
                 <p>Welcome, Admin! Use this page to manage the site.</p>
+
+                <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
+                    <button 
+                        onClick={() => router.push("/admin/movies")}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#000000ff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Manage Movies
+                    </button>
+
+                    <button 
+                        onClick={() => router.push("/admin/movies/add")}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#000000ff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                        }}
+                    >
+                        Add Movies
+                    </button>
+
+                    <button 
+                        onClick={() => router.push("/admin/showtimes")}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#000000ff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                }}
+                    >
+                        Add Showtimes
+                    </button>
+
+                    <button 
+                        onClick={() => router.push("/admin/promotions")}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#000000ff",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontSize: "16px",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                    }}
+                    >
+                        Add Promotions
+                    </button>
+                </div>
             </main>
 
             <style jsx>{`
