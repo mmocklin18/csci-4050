@@ -3,51 +3,47 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-interface Promotion {
-  promotions_id: number;
-  code: string;
-  discount: number;
-  start_date: string;
-  end_date: string;
+interface User {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  promo: boolean;
 }
 
-export default function ManagePromotions() {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
+export default function ManageUsers() {
+  const [users, setUsers] = useState<User[]>([]);
   const router = useRouter();
 
   useEffect(() => {
-    async function fetchPromotions() {
+    async function fetchUsers() {
       try {
-        const res = await fetch("http://localhost:8000/admin/promotions/");
-        if (!res.ok) throw new Error("Failed to fetch promotions");
+        const res = await fetch("http://localhost:8000/users/");
+        if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
-        setPromotions(data);
+        setUsers(data);
       } catch (err) {
-        console.error("Error fetching promotions:", err);
+        console.error("Error fetching users:", err);
       }
     }
-    fetchPromotions();
+    fetchUsers();
   }, []);
 
-  const handleAddPromotion = () => {
-    router.push("/admin/promotions/add");
-  };
-
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this promotion?")) return;
+    if (!confirm("Delete this user?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/admin/promotions/${id}/`, {
+      const res = await fetch(`http://localhost:8000/users/${id}/`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        setPromotions((prev) => prev.filter((p) => p.promotions_id !== id));
+        setUsers((prev) => prev.filter((u) => u.user_id !== id));
       } else {
-        alert("Failed to delete promotion");
+        alert("Failed to delete user");
       }
     } catch (err) {
-      console.error("Error deleting promotion:", err);
+      console.error("Error deleting user:", err);
     }
   };
 
@@ -71,31 +67,14 @@ export default function ManagePromotions() {
             color: "black",
           }}
         >
-          Manage Promotions
+          Manage Users
         </h1>
 
-        <button
-          onClick={handleAddPromotion}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#000000ff",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "16px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            marginBottom: "20px",
-          }}
-        >
-          + Add Promotion
-        </button>
-
-        <ul style={{ width: "100%", maxWidth: "600px", listStyle: "none", padding: 0 }}>
-          {promotions.length > 0 ? (
-            promotions.map((p) => (
+        <ul style={{ width: "100%", maxWidth: "700px", listStyle: "none", padding: 0 }}>
+          {users.length > 0 ? (
+            users.map((u) => (
               <li
-                key={p.promotions_id}
+                key={u.user_id}
                 style={{
                   border: "1px solid #ddd",
                   borderRadius: "8px",
@@ -108,19 +87,25 @@ export default function ManagePromotions() {
                 }}
               >
                 <div
+                  onClick={() => router.push(`/admin/users/${u.user_id}`)}
                   style={{
+                    cursor: "pointer",
                     color: "black",
                     fontWeight: "bold",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  {p.code} — {p.discount}% off
-                  <div style={{ fontSize: "14px", color: "#555" }}>
-                    {p.start_date} to {p.end_date}
-                  </div>
+                  <span>
+                    {u.first_name} {u.last_name}
+                  </span>
+                  <span style={{ fontSize: "14px", color: "gray" }}>
+                    {u.email}
+                  </span>
                 </div>
 
                 <button
-                  onClick={() => handleDelete(p.promotions_id)}
+                  onClick={() => handleDelete(u.user_id)}
                   style={{
                     padding: "6px 12px",
                     backgroundColor: "#b91c1c",
@@ -137,7 +122,7 @@ export default function ManagePromotions() {
               </li>
             ))
           ) : (
-            <p style={{ color: "gray", textAlign: "center" }}>No promotions found.</p>
+            <p style={{ color: "gray", textAlign: "center" }}>No users found.</p>
           )}
         </ul>
       </div>

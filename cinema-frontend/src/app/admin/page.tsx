@@ -52,8 +52,8 @@ export default function AdminPage() {
                         Manage Movies
                     </button>
 
-                    <button 
-                        onClick={() => router.push("/admin/movies/add")}
+                     <button 
+                        onClick={() => router.push("/admin/users")}
                         style={{
                             padding: "10px 20px",
                             backgroundColor: "#000000ff",
@@ -65,7 +65,7 @@ export default function AdminPage() {
                             cursor: "pointer",
                         }}
                     >
-                        Add Movies
+                        Manage Users
                     </button>
 
                     <button 
@@ -81,10 +81,10 @@ export default function AdminPage() {
                             cursor: "pointer",
                 }}
                     >
-                        Add Showtimes
+                        Manage Showtimes
                     </button>
 
-                    <button 
+                     <button 
                         onClick={() => router.push("/admin/promotions")}
                         style={{
                             padding: "10px 20px",
@@ -97,7 +97,7 @@ export default function AdminPage() {
                             cursor: "pointer",
                     }}
                     >
-                        Add Promotions
+                        Manage Promotions
                     </button>
                 </div>
             </main>
