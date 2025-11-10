@@ -5,6 +5,11 @@ from app.routers.auth import router as auth_router
 from app.routers.user import router as user_router
 from app.routers.card import router as card_router
 from app.routers.email import router as email_router
+from app.routers.booking import router as booking_router
+from app.routers.showroom import router as showroom_router
+from app.routers.show import router as show_router
+from app.routers.seat import router as seat_router
+
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -28,6 +33,10 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(card_router)
 app.include_router(email_router)
+app.include_router(showroom_router)
+app.include_router(show_router)
+app.include_router(seat_router)
+app.include_router(booking_router)
 
 
 @app.get("/")
