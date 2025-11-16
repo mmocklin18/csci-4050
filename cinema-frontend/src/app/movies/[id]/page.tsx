@@ -68,6 +68,7 @@ function mapApiToUi(m: ApiMovie) {
 export default function MovieDetails() {
     const { id } = useParams<{ id: string }>();
     const [date, setDate] = useState("");
+    const [dateFocused, setDateFocused] = useState(false);
     const [movie, setMovie] = useState<ReturnType<typeof mapApiToUi> | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -110,65 +111,99 @@ export default function MovieDetails() {
                     {/*Date input box*/}
                     <div
                         style={{
-                        marginTop: "8px",
-                        marginBottom: "8px",
-                        padding: "4px",
-                        border: "1px solid #ddd",
-                        borderWidth: "1px",
-                        borderRadius: "8px",
-                        backgroundColor: "#f9f9f9",
-                        maxWidth: "190px",
-                        marginLeft: "0px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-start"
+                            marginTop: "8px",
+                            marginBottom: "8px",
+                            padding: "6px",
+                            border: `1px solid ${dateFocused ? "#fc6767ff" : "#e2e8f0"}` ,
+                            borderRadius: "10px",
+                            backgroundColor: dateFocused ? "#fff0f0ff" : "#f9f9f9",
+                            maxWidth: "220px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            boxShadow: dateFocused ? "0 4px 12px rgba(76,154,255,0.12)" : "none",
+                            transition: "all 160ms ease-in-out",
                         }}
                     >
                         <h2 style={{ color: "black", marginBottom: "6px", textAlign: "left", fontSize: "15px", marginLeft: "1px" }}><strong>Select Date:</strong></h2>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            style={{
-                                width: "100px",
-                                padding: "5px",
-                                border: "1px solid #bbb",
-                                borderRadius: "3px",
-                                fontSize: "12px",
-                                color: "black",
-                                marginLeft: "38px",
-                            }}
-                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+                            {/* Calendar icon */}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.9 }}>
+                                <path d="M7 11H9V13H7V11Z" fill="#6b7280" />
+                                <path d="M11 11H13V13H11V11Z" fill="#6b7280" />
+                                <path d="M15 11H17V13H15V11Z" fill="#6b7280" />
+                                <path fillRule="evenodd" clipRule="evenodd" d="M5 4C4.44772 4 4 4.44772 4 5V19C4 19.5523 4.44772 20 5 20H19C19.5523 20 20 19.5523 20 19V5C20 4.44772 19.5523 4 19 4H17V3H15V4H9V3H7V4H5ZM6 8H18V18H6V8Z" fill="#6b7280" />
+                            </svg>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                onFocus={() => setDateFocused(true)}
+                                onBlur={() => setDateFocused(false)}
+                                aria-label="Select show date"
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 10px",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontSize: "13px",
+                                    color: "#111827",
+                                    backgroundColor: "transparent",
+                                    outline: "none",
+                                    cursor: "pointer",
+                                    WebkitAppearance: "none",
+                                }}
+                            />
+                        </div>
                     </div>
 
 					<h2 style={{color: "black"}}><strong>Showtimes (select one below):</strong></h2>
 					{/*List of showtimes as clickable links to booking page*/}
 					<ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "5px"}}>
                         {movie.showtimes.map((time) => {
-                            let href = `/booking?title=${encodeURIComponent(movie.title)}&time=${encodeURIComponent(time)}`;
-                            if (date) {
-                                href += `&date=${encodeURIComponent(date)}`;
-                            }
+                            const href = `/booking?title=${encodeURIComponent(movie.title)}&time=${encodeURIComponent(time)}${date ? `&date=${encodeURIComponent(date)}` : ""}`;
                             return (
                                 <li key={time}>
-                                    <Link 
-                                        href={href}
-                                        style = {{
-                                            display: "inline-block",
-                                            padding: "8px 16px",
-                                            margin: "4px",
-                                            backgroundColor: "#000000ff",
-                                            color: "white",
-                                            borderRadius: "8px",
-                                            textDecoration: "none",
-                                            fontWeight: "bold",
-                                            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                                            transition: "background-color 0.3s ease",
-                                            cursor: "pointer"
-                                        }}
-                                    >
-                                        {time}
-                                    </Link>
+                                    {date ? (
+                                        <Link
+                                            href={href}
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "8px 16px",
+                                                margin: "4px",
+                                                backgroundColor: "#000000ff",
+                                                color: "white",
+                                                borderRadius: "8px",
+                                                textDecoration: "none",
+                                                fontWeight: "bold",
+                                                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                                                transition: "background-color 0.3s ease",
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            {time}
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            onClick={() => alert("Please select a date before choosing a showtime.")}
+                                            aria-disabled={true}
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "8px 16px",
+                                                margin: "4px",
+                                                backgroundColor: "#cccccc",
+                                                color: "#666666",
+                                                borderRadius: "8px",
+                                                textDecoration: "none",
+                                                fontWeight: "bold",
+                                                boxShadow: "none",
+                                                border: "none",
+                                                cursor: "not-allowed",
+                                            }}
+                                        >
+                                            {time}
+                                        </button>
+                                    )}
                                 </li>
                             );
                         })}
