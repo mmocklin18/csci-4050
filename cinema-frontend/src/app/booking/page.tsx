@@ -19,28 +19,21 @@ function extractDatePart(iso: string | null): string | null {
 
 export default function Booking() {
     const params = useSearchParams();
-    const showtimeIso = params.get("time");
-    const showId = params.get("showId");
-    const derivedDate = extractDatePart(showtimeIso) || params.get("date");
-    const showtimeLabel = useMemo(() => formatShowtimeLabel(showtimeIso), [showtimeIso]);
-    // Ticket counts per type
     const [adultTickets, setAdultTickets] = useState(0);
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
     const movieTitle = params.get("title");
     const [selectedDate, setSelectedDate] = useState("");
 
-    
-
     useEffect(() => {
-        // Try to get the date from localStorage
-        const storedDate = derivedDate || localStorage.getItem("selectedDate");
+
+        const storedDate = localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
             localStorage.setItem("selectedDate", storedDate);
         }
 
-        // Load ticket counts (if previously saved)
+
         const a = localStorage.getItem("tickets_adult");
         const c = localStorage.getItem("tickets_child");
         const s = localStorage.getItem("tickets_senior");
@@ -49,7 +42,7 @@ export default function Booking() {
         if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
     }, [derivedDate]);
 
-    // Persist ticket counts whenever they change
+
     useEffect(() => {
         localStorage.setItem("tickets_adult", String(adultTickets));
     }, [adultTickets]);
@@ -60,7 +53,7 @@ export default function Booking() {
         localStorage.setItem("tickets_senior", String(seniorTickets));
     }, [seniorTickets]);
 
-    // Ticket controls per type. Adults minimum 0 (can be 0), others minimum 0.
+
     const increaseAdult = () => setAdultTickets((t) => t + 1);
     const decreaseAdult = () => setAdultTickets((t) => (t > 0 ? t - 1 : 0));
 
@@ -70,10 +63,10 @@ export default function Booking() {
     const increaseSenior = () => setSeniorTickets((t) => t + 1);
     const decreaseSenior = () => setSeniorTickets((t) => (t > 0 ? t - 1 : 0));
 
-    // Price points (change as needed)
-    const ADULT_PRICE = 12.0; // $12.00
-    const CHILD_PRICE = 8.0;  // $8.00
-    const SENIOR_PRICE = 9.0; // $9.00
+
+    const ADULT_PRICE = 12.0;
+    const CHILD_PRICE = 8.0;
+    const SENIOR_PRICE = 9.0;
 
     const adultSubtotal = adultTickets * ADULT_PRICE;
     const childSubtotal = childTickets * CHILD_PRICE;
@@ -81,32 +74,72 @@ export default function Booking() {
     const totalPrice = adultSubtotal + childSubtotal + seniorSubtotal;
 
     return (
-        <div style={{ backgroundColor: "#fff", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, margin: 0}}>
-            <Navbar/>
-            <h1 style={{marginTop: "30px", fontSize: "24px", fontWeight: "bold", color: "black", marginBottom: "16px", marginLeft: "auto", marginRight: "auto", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column"}}>
-                Booking 
+        <div
+            style={{
+                backgroundColor: "#fff",
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                margin: 0,
+                overflowY: "auto",
+            }}
+        >
+            <Navbar />
+            <h1
+                style={{
+                    marginTop: "30px",
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "black",
+                    marginBottom: "16px",
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    flexDirection: "column",
+                }}
+            >
+                Booking
             </h1>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                {/*Booking details*/}
-                <p style={{marginBottom: "8px", color: "black"}}>
-                    <strong>Movie:</strong> {movieTitle || "Not specified"} 
-                </p>
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                {/* Booking summary card */}
+                <div
+                    style={{
+                        backgroundColor: "#f6f6f6",
+                        padding: "18px 24px",
+                        borderRadius: "14px",
+                        border: "2px solid #000",
+                        width: "90%",
+                        maxWidth: "380px",
+                        margin: "0 auto 20px",
+                        boxShadow: "0 6px 18px rgba(0, 0, 0, 0.18)",
+                        textAlign: "center",
+                        lineHeight: "1.6",
+                    }}
+                >
+                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
+                        <strong>Movie:</strong> {movieTitle || "Not specified"}
+                    </div>
 
-                <p style={{marginBottom: "8px", color: "black"}}>
-                    <strong>Showtime:</strong> {showtimeLabel || "Not specified"} 
-                </p>
+                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
+                        <strong>Showtime:</strong> {showtime || "Not specified"}
+                    </div>
 
-                <p style={{marginBottom: "8px", color: "black"}}>
-                    <strong>Date:</strong> {selectedDate || "Not specified"}
-                </p>
-                {showId && (
-                    <p style={{marginBottom: "8px", color: "black"}}>
-                        <strong>Show ID:</strong> {showId}
-                    </p>
-                )}
-
-                
+                    <div style={{ fontSize: "16px" }}>
+                        <strong>Date:</strong> {selectedDate || "Not specified"}
+                    </div>
+                </div>
 
                 {/* Ticket counters */}
                 <div
@@ -124,62 +157,284 @@ export default function Booking() {
                         alignItems: "center",
                     }}
                 >
-                    <h2 style={{ fontSize: "15px", fontWeight: "bold", color: "black", marginBottom: "8px" }}>Select Number of Tickets</h2>
+                    <h2
+                        style={{
+                            fontSize: "15px",
+                            fontWeight: "bold",
+                            color: "black",
+                            marginBottom: "8px",
+                        }}
+                    >
+                        Select Number of Tickets
+                    </h2>
 
                     {/* Adult */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", justifyContent: "space-between", padding: "0 12px" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "8px",
+                            width: "100%",
+                            justifyContent: "space-between",
+                            padding: "0 12px",
+                        }}
+                    >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Adults</strong>
-                            <div style={{ fontSize: "12px", color: "#555" }}>${ADULT_PRICE.toFixed(2)} each</div>
+                            <div
+                                style={{ fontSize: "12px", color: "#555" }}
+                            >
+                                ${ADULT_PRICE.toFixed(2)} each
+                            </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                            <button onClick={decreaseAdult} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>-</button>
-                            <span style={{ margin: "0 10px", fontSize: "16px", fontWeight: "bold", color: "black" }}>{adultTickets}</span>
-                            <button onClick={increaseAdult} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>+</button>
+                        <div
+                            style={{ display: "flex", alignItems: "center" }}
+                        >
+                            <button
+                                onClick={decreaseAdult}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                -
+                            </button>
+                            <span
+                                style={{
+                                    margin: "0 10px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    color: "black",
+                                }}
+                            >
+                                {adultTickets}
+                            </span>
+                            <button
+                                onClick={increaseAdult}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                +
+                            </button>
                         </div>
-                        <div style={{ marginLeft: "12px", fontSize: "14px", color: "black" }}>${adultSubtotal.toFixed(2)}</div>
+                        <div
+                            style={{
+                                marginLeft: "12px",
+                                fontSize: "14px",
+                                color: "black",
+                            }}
+                        >
+                            ${adultSubtotal.toFixed(2)}
+                        </div>
                     </div>
 
                     {/* Child */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", justifyContent: "space-between", padding: "0 12px" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "8px",
+                            width: "100%",
+                            justifyContent: "space-between",
+                            padding: "0 12px",
+                        }}
+                    >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Children</strong>
-                            <div style={{ fontSize: "12px", color: "#555" }}>${CHILD_PRICE.toFixed(2)} each</div>
+                            <div
+                                style={{ fontSize: "12px", color: "#555" }}
+                            >
+                                ${CHILD_PRICE.toFixed(2)} each
+                            </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                            <button onClick={decreaseChild} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>-</button>
-                            <span style={{ margin: "0 10px", fontSize: "16px", fontWeight: "bold", color: "black" }}>{childTickets}</span>
-                            <button onClick={increaseChild} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>+</button>
+                        <div
+                            style={{ display: "flex", alignItems: "center" }}
+                        >
+                            <button
+                                onClick={decreaseChild}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                -
+                            </button>
+                            <span
+                                style={{
+                                    margin: "0 10px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    color: "black",
+                                }}
+                            >
+                                {childTickets}
+                            </span>
+                            <button
+                                onClick={increaseChild}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                +
+                            </button>
                         </div>
-                        <div style={{ marginLeft: "12px", fontSize: "14px", color: "black" }}>${childSubtotal.toFixed(2)}</div>
+                        <div
+                            style={{
+                                marginLeft: "12px",
+                                fontSize: "14px",
+                                color: "black",
+                            }}
+                        >
+                            ${childSubtotal.toFixed(2)}
+                        </div>
                     </div>
 
                     {/* Senior */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", justifyContent: "space-between", padding: "0 12px" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "8px",
+                            width: "100%",
+                            justifyContent: "space-between",
+                            padding: "0 12px",
+                        }}
+                    >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Seniors</strong>
-                            <div style={{ fontSize: "12px", color: "#555" }}>${SENIOR_PRICE.toFixed(2)} each</div>
+                            <div
+                                style={{ fontSize: "12px", color: "#555" }}
+                            >
+                                ${SENIOR_PRICE.toFixed(2)} each
+                            </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                            <button onClick={decreaseSenior} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>-</button>
-                            <span style={{ margin: "0 10px", fontSize: "16px", fontWeight: "bold", color: "black" }}>{seniorTickets}</span>
-                            <button onClick={increaseSenior} style={{ width: "28px", height: "28px", fontSize: "16px", fontWeight: "bold", backgroundColor: "#000000ff", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>+</button>
+                        <div
+                            style={{ display: "flex", alignItems: "center" }}
+                        >
+                            <button
+                                onClick={decreaseSenior}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                -
+                            </button>
+                            <span
+                                style={{
+                                    margin: "0 10px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    color: "black",
+                                }}
+                            >
+                                {seniorTickets}
+                            </span>
+                            <button
+                                onClick={increaseSenior}
+                                style={{
+                                    width: "28px",
+                                    height: "28px",
+                                    fontSize: "16px",
+                                    fontWeight: "bold",
+                                    backgroundColor: "#000000ff",
+                                    color: "white",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                +
+                            </button>
                         </div>
-                        <div style={{ marginLeft: "12px", fontSize: "14px", color: "black" }}>${seniorSubtotal.toFixed(2)}</div>
+                        <div
+                            style={{
+                                marginLeft: "12px",
+                                fontSize: "14px",
+                                color: "black",
+                            }}
+                        >
+                            ${seniorSubtotal.toFixed(2)}
+                        </div>
                     </div>
 
-                    <div style={{ width: "100%", height: "1px", backgroundColor: "#eee", margin: "8px 0" }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", width: "100%", padding: "0 12px", alignItems: "center" }}>
+                    <div
+                        style={{
+                            width: "100%",
+                            height: "1px",
+                            backgroundColor: "#eee",
+                            margin: "8px 0",
+                        }}
+                    />
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            width: "100%",
+                            padding: "0 12px",
+                            alignItems: "center",
+                        }}
+                    >
                         <div style={{ fontWeight: "bold" }}>Total</div>
-                        <div style={{ fontWeight: "bold" }}>${totalPrice.toFixed(2)}</div>
+                        <div style={{ fontWeight: "bold" }}>
+                            ${totalPrice.toFixed(2)}
+                        </div>
                     </div>
                 </div>
-                {/*Confirm booking button*/}
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "32px" }}>
+
+                {/* Continue button */}
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginTop: "32px",
+                    }}
+                >
                     <button
                         style={{
                             marginTop: "20px",
-                            //marginLeft: "20px",
                             padding: "10px 20px",
                             backgroundColor: "#000000ff",
                             color: "white",
@@ -205,12 +460,16 @@ export default function Booking() {
                                 },
                                 total: totalPrice,
                             };
-                            // Save summary to localStorage and show confirmation
-                            localStorage.setItem("booking_summary", JSON.stringify(summary));
-                            alert(`Booking saved. Total: $${totalPrice.toFixed(2)} (${adultTickets} adult, ${childTickets} child, ${seniorTickets} senior)`);
+
+                            localStorage.setItem(
+                                "booking_summary",
+                                JSON.stringify(summary)
+                            );
+
+                            window.location.href = "/seat-selection";
                         }}
                     >
-                        Confirm Booking
+                        Continue
                     </button>
                 </div>
             </div>
