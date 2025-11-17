@@ -33,8 +33,6 @@ const Genres = [
     "Thriller",
 ];
 
-const DefaultShowtimes = ["12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"];
-
 type ApiMovie = {
     movie_id: number;
     name: string;
@@ -49,13 +47,27 @@ type ApiMovie = {
     main_genre: string;
 };
 
+type ApiShow = {
+    show_id: number;
+    movieid: number;
+    showroom_id: number;
+    date_time: string;
+    duration: number;
+};
+
 function toStatus(m: ApiMovie): Status {
     if (m.available) return "current";
     const t = Date.parse(m.release_date);
     return Number.isFinite(t) && t <= Date.now() ? "current" : "comingSoon";
 }
 
-function mapApiMovie(m: ApiMovie): Movie {
+function formatShowLabel(dateStr: string): string {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "TBA";
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function mapApiMovie(m: ApiMovie, showtimes: string[] = []): Movie {
     return {
         id: String(m.movie_id),
         title: m.name,
@@ -63,7 +75,7 @@ function mapApiMovie(m: ApiMovie): Movie {
         genre: m.main_genre ?? "Drama",
         status: toStatus(m),
         poster: m.poster ?? "/placeholder.png",
-        showtimes: [...DefaultShowtimes], // harcoded showtimes
+        showtimes,
     };
 }
 
@@ -71,9 +83,16 @@ export default function Page() {
     const [genres, setGenres] = useState<Set<string>>(new Set());
     const [searchText, setSearchText] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [movies, setMovies] = useState<Movie[]>([]);
+    const [apiMovies, setApiMovies] = useState<ApiMovie[]>([]);
+    const [showtimesByMovie, setShowtimesByMovie] = useState<Record<string, string[]>>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const movies = useMemo(() => {
+        return apiMovies.map((m) =>
+            mapApiMovie(m, showtimesByMovie[String(m.movie_id)] ?? [])
+        );
+    }, [apiMovies, showtimesByMovie]);
 
     const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -95,13 +114,33 @@ export default function Page() {
                 const res = await fetch("/api/movies", { cache: "no-store" });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const api: ApiMovie[] = await res.json();
-                if (alive) setMovies((api ?? []).map(mapApiMovie));
+                if (alive) setApiMovies(api ?? []);
             } catch (err: unknown) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load movies";
                 setError(message);
             } finally {
                 if (alive) setLoading(false);
+            }
+        })();
+        (async () => {
+            try {
+                const res = await fetch("/api/shows", { cache: "no-store" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const shows: ApiShow[] = await res.json();
+                const grouped: Record<string, string[]> = {};
+                (shows ?? []).forEach((show) => {
+                    const key = String(show.movieid);
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(formatShowLabel(show.date_time));
+                });
+                Object.keys(grouped).forEach((key) => {
+                    grouped[key].sort();
+                });
+                if (alive) setShowtimesByMovie(grouped);
+            } catch (err) {
+                console.error("Failed to fetch showtimes", err);
+                if (alive) setShowtimesByMovie({});
             }
         })();
         return () => { alive = false; };
@@ -341,12 +380,6 @@ function MovieCard({ movie }: { movie: Movie }) {
                 </div>
             </Link>
 
-            <div className="showtimes">
-                {(movie.showtimes?.length ? movie.showtimes : DefaultShowtimes).map((t) => (
-                    <span className="showtimeStyle" key={t}>{t}</span>
-                ))}
-            </div>
-
             <style jsx>{`
         .card {
           background: #fff;
@@ -427,5 +460,3 @@ function MovieCard({ movie }: { movie: Movie }) {
         </article>
     );
 }
-
-

@@ -1,7 +1,21 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+
+function formatShowtimeLabel(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function extractDatePart(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().split("T")[0];
+}
 
 export default function Booking() {
     const params = useSearchParams();
@@ -9,7 +23,6 @@ export default function Booking() {
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
     const movieTitle = params.get("title");
-    const showtime = params.get("time");
     const [selectedDate, setSelectedDate] = useState("");
 
     useEffect(() => {
@@ -17,6 +30,7 @@ export default function Booking() {
         const storedDate = localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
+            localStorage.setItem("selectedDate", storedDate);
         }
 
 
@@ -26,7 +40,7 @@ export default function Booking() {
         if (a !== null) setAdultTickets(parseInt(a, 10) || 0);
         if (c !== null) setChildTickets(parseInt(c, 10) || 0);
         if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
-    }, []);
+    }, [derivedDate]);
 
 
     useEffect(() => {
@@ -434,12 +448,13 @@ export default function Booking() {
                             display: "flex",
                         }}
                         onClick={() => {
-                            const summary = {
-                                movie: movieTitle || null,
-                                showtime: showtime || null,
-                                date: selectedDate || null,
-                                tickets: {
-                                    adults: adultTickets,
+                                const summary = {
+                                    movie: movieTitle || null,
+                                    showtime: showtimeIso || null,
+                                    showId: showId || null,
+                                    date: selectedDate || null,
+                                    tickets: {
+                                        adults: adultTickets,
                                     children: childTickets,
                                     seniors: seniorTickets,
                                 },
