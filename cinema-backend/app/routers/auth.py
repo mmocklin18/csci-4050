@@ -134,7 +134,7 @@ async def login(payload: UserLogin, session: AsyncSession = Depends(get_session)
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,    
-            "type": user.type
+            "type": user.role
         },
     }
 
