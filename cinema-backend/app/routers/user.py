@@ -1,6 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+
+
 
 from app.core.db import get_session
 from app.core.dependencies import get_current_user
@@ -20,6 +23,41 @@ async def get_user_profile(
     await db.refresh(current_user, ["address"])
     current_user.address = current_user.address
     return current_user
+
+
+@router.get("/all", response_model=list[UserRead])
+async def get_all_users(
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    result = await db.execute(select(User).options(selectinload(User.address)))
+    users = result.scalars().all()
+    return users
+
+
+@router.delete("/{user_id}", status_code=204)
+async def delete_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a user account (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Prevent an admin from deleting themselves
+    if user.user_id == current_user.user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+
+    await db.delete(user)
+    await db.commit()
 
 
 @router.patch("/", response_model=UserRead)

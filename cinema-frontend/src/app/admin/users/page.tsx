@@ -11,6 +11,12 @@ interface User {
   promo: boolean;
 }
 
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.API_BASE ||
+  process.env.API_BASE_URL ||
+  "http://localhost:8000";
+
 export default function ManageUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const router = useRouter();
@@ -18,7 +24,14 @@ export default function ManageUsers() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const res = await fetch("http://localhost:8000/users/");
+        const token = localStorage.getItem("auth_token");
+        if (!token) {
+          router.push("/");
+          return;
+        }
+        const res = await fetch(`${API_BASE}/user/all`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!res.ok) throw new Error("Failed to fetch users");
         const data = await res.json();
         setUsers(data);
@@ -33,8 +46,15 @@ export default function ManageUsers() {
     if (!confirm("Delete this user?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8000/users/${id}/`, {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        alert("Not authenticated");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/user/${id}`, {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
