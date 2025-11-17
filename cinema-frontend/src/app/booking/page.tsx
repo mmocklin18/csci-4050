@@ -1,25 +1,43 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
+function formatShowtimeLabel(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function extractDatePart(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().split("T")[0];
+}
+
 export default function Booking() {
     const params = useSearchParams();
+    const showtimeIso = params.get("time");
+    const showId = params.get("showId");
+    const derivedDate = extractDatePart(showtimeIso) || params.get("date");
+    const showtimeLabel = useMemo(() => formatShowtimeLabel(showtimeIso), [showtimeIso]);
     // Ticket counts per type
     const [adultTickets, setAdultTickets] = useState(0);
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
     const movieTitle = params.get("title");
-    const showtime = params.get("time");
     const [selectedDate, setSelectedDate] = useState("");
 
     
 
     useEffect(() => {
         // Try to get the date from localStorage
-        const storedDate = localStorage.getItem("selectedDate");
+        const storedDate = derivedDate || localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
+            localStorage.setItem("selectedDate", storedDate);
         }
 
         // Load ticket counts (if previously saved)
@@ -29,7 +47,7 @@ export default function Booking() {
         if (a !== null) setAdultTickets(parseInt(a, 10) || 0);
         if (c !== null) setChildTickets(parseInt(c, 10) || 0);
         if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
-    }, []);
+    }, [derivedDate]);
 
     // Persist ticket counts whenever they change
     useEffect(() => {
@@ -76,12 +94,17 @@ export default function Booking() {
                 </p>
 
                 <p style={{marginBottom: "8px", color: "black"}}>
-                    <strong>Showtime:</strong> {showtime || "Not specified"} 
+                    <strong>Showtime:</strong> {showtimeLabel || "Not specified"} 
                 </p>
 
                 <p style={{marginBottom: "8px", color: "black"}}>
                     <strong>Date:</strong> {selectedDate || "Not specified"}
                 </p>
+                {showId && (
+                    <p style={{marginBottom: "8px", color: "black"}}>
+                        <strong>Show ID:</strong> {showId}
+                    </p>
+                )}
 
                 
 
@@ -170,12 +193,13 @@ export default function Booking() {
                             display: "flex",
                         }}
                         onClick={() => {
-                            const summary = {
-                                movie: movieTitle || null,
-                                showtime: showtime || null,
-                                date: selectedDate || null,
-                                tickets: {
-                                    adults: adultTickets,
+                                const summary = {
+                                    movie: movieTitle || null,
+                                    showtime: showtimeIso || null,
+                                    showId: showId || null,
+                                    date: selectedDate || null,
+                                    tickets: {
+                                        adults: adultTickets,
                                     children: childTickets,
                                     seniors: seniorTickets,
                                 },
