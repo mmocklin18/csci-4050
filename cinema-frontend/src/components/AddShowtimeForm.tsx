@@ -3,38 +3,60 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
+interface MovieOption {
+  movie_id: number;
+  name: string;
+}
+
+interface ShowroomOption {
+  showroom_id: number;
+  name: string;
+}
+
 export default function ShowtimeForm() {
-  const [movies, setMovies] = useState<any[]>([]);
+  const [movies, setMovies] = useState<MovieOption[]>([]);
+  const [showrooms, setShowrooms] = useState<ShowroomOption[]>([]);
   const [movieId, setMovieId] = useState("");
-  const [theater, setTheater] = useState("");
+  const [showroomId, setShowroomId] = useState("");
   const [showtime, setShowtime] = useState("");
+  const [duration, setDuration] = useState("120");
   const router = useRouter();
 
   useEffect(() => {
-    const fetchMovies = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:8000/movies/");
-        if (!res.ok) throw new Error("Failed to fetch movies");
-        const data = await res.json();
-        setMovies(data);
+        const [moviesRes, showroomsRes] = await Promise.all([
+          fetch("http://localhost:8000/movies/"),
+          fetch("http://localhost:8000/showrooms/"),
+        ]);
+
+        if (!moviesRes.ok || !showroomsRes.ok) {
+          throw new Error("Failed to fetch dropdown data");
+        }
+
+        setMovies(await moviesRes.json());
+        setShowrooms(await showroomsRes.json());
       } catch (err) {
-        console.error("Error fetching movies:", err);
+        console.error("Error fetching form data:", err);
       }
     };
-    fetchMovies();
+    fetchData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/admin/showtimes/", {
+      const payload = {
+        movieid: parseInt(movieId, 10),
+        showroom_id: parseInt(showroomId, 10),
+        date_time: new Date(showtime).toISOString(),
+        duration: parseInt(duration || "120", 10),
+      };
+
+      const res = await fetch("http://localhost:8000/shows/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          movie_id: parseInt(movieId),
-          theater,
-          showtime,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Failed to add showtime");
@@ -130,7 +152,7 @@ export default function ShowtimeForm() {
           </select>
         </div>
 
-        {/* Theater Number */}
+        {/* Showroom Selection */}
         <div
           style={{
             display: "flex",
@@ -147,13 +169,11 @@ export default function ShowtimeForm() {
               fontSize: "15px",
             }}
           >
-            Theater Number:
+            Select Showroom:
           </label>
-          <input
-            type="number"
-            placeholder="Enter theater number"
-            value={theater}
-            onChange={(e) => setTheater(e.target.value)}
+          <select
+            value={showroomId}
+            onChange={(e) => setShowroomId(e.target.value)}
             required
             style={{
               padding: "8px",
@@ -164,7 +184,14 @@ export default function ShowtimeForm() {
               width: "220px",
               textAlign: "center",
             }}
-          />
+          >
+            <option value="">Select a showroom</option>
+            {showrooms.map((room) => (
+              <option key={room.showroom_id} value={room.showroom_id}>
+                {room.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Showtime */}
@@ -190,6 +217,43 @@ export default function ShowtimeForm() {
             type="datetime-local"
             value={showtime}
             onChange={(e) => setShowtime(e.target.value)}
+            required
+            style={{
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              backgroundColor: "#f9f9f9",
+              color: "black",
+              width: "220px",
+              textAlign: "center",
+            }}
+          />
+        </div>
+
+        {/* Duration */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginBottom: "10px",
+            alignItems: "center",
+          }}
+        >
+          <label
+            style={{
+              fontWeight: "bold",
+              color: "black",
+              marginBottom: "5px",
+              fontSize: "15px",
+            }}
+          >
+            Duration (minutes):
+          </label>
+          <input
+            type="number"
+            min="30"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
             required
             style={{
               padding: "8px",

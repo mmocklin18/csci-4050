@@ -36,3 +36,19 @@ async def create_show(payload: ShowCreate, db: AsyncSession = Depends(get_sessio
     await db.commit()
     await db.refresh(new_show)
     return new_show
+
+
+@router.delete("/{show_id}", status_code=204)
+async def delete_show(show_id: int, db: AsyncSession = Depends(get_session)):
+    show = await db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Showtime not found")
+
+    try:
+        await db.delete(show)
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        if "1451" in str(exc):
+            raise HTTPException(400, "Cannot delete a showtime that already has bookings")
+        raise HTTPException(500, f"Error deleting showtime: {exc}") from exc
