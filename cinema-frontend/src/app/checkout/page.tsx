@@ -7,6 +7,7 @@ type BookingSummary = {
     movie: string | null;
     showtime: string | null;
     date: string | null;
+    showId?: string | null;
     tickets: {
         adults: number;
         children: number;
@@ -15,6 +16,12 @@ type BookingSummary = {
     total: number;
     showroom?: string;
 };
+
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
 
 const formatPrettyDate = (value: string | null | undefined): string => {
     if (!value) return "";
@@ -70,17 +77,28 @@ const SAVED_METHODS = [
 export default function CheckoutPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
+    const [seatIds, setSeatIds] = useState<number[]>([]);
     const [promoCode, setPromoCode] = useState("");
     const [appliedCode, setAppliedCode] = useState<string | null>(null);
     const [promoError, setPromoError] = useState<string | null>(null);
     const [paymentOption, setPaymentOption] =
         useState<PaymentOptionId>("saved1");
+    const [placing, setPlacing] = useState(false);
+    const [placeError, setPlaceError] = useState<string | null>(null);
 
     useEffect(() => {
         const stored = localStorage.getItem("booking_summary");
         const storedSeats = localStorage.getItem("selected_seats");
+        const storedSeatIds = localStorage.getItem("selected_seat_ids");
         if (stored) setBooking(JSON.parse(stored));
         if (storedSeats) setSeats(JSON.parse(storedSeats));
+        if (storedSeatIds) {
+            try {
+                setSeatIds(JSON.parse(storedSeatIds));
+            } catch {
+                // ignore parse errors
+            }
+        }
     }, []);
 
     const adults = booking?.tickets.adults ?? 0;
@@ -110,12 +128,61 @@ export default function CheckoutPage() {
         }
     };
 
-    const placeOrder = () => {
-        alert(
-            `Mock order placed!\n\nMovie: ${booking?.movie}\nSeats: ${seats.join(
-                ", "
-            )}\nTotal Charged: $${finalTotal.toFixed(2)}`
-        );
+    const placeOrder = async () => {
+        setPlaceError(null);
+
+        if (!booking?.showId) {
+            alert("Missing show ID for booking.");
+            return;
+        }
+        if (!API_BASE) {
+            alert("API base URL not configured.");
+            return;
+        }
+        const userIdRaw = localStorage.getItem("user_id");
+        const userId = userIdRaw ? parseInt(userIdRaw, 10) : NaN;
+        if (!userId || Number.isNaN(userId)) {
+            alert("Please log in before placing an order.");
+            return;
+        }
+        if (!seatIds.length) {
+            alert("No seats selected to reserve.");
+            return;
+        }
+
+        setPlacing(true);
+        try {
+            for (const seatId of seatIds) {
+                const res = await fetch(`${API_BASE}/booking/reserve`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        show_id: Number(booking.showId),
+                        seat_id: seatId,
+                        user_id: userId,
+                    }),
+                });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(
+                        `Failed to reserve seat: ${res.status} ${text || res.statusText}`
+                    );
+                }
+            }
+            alert(
+                `Order placed!\n\nMovie: ${booking?.movie}\nSeats: ${seats.join(
+                    ", "
+                )}\nTotal Charged: $${finalTotal.toFixed(2)}`
+            );
+        } catch (err) {
+            setPlaceError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to place order."
+            );
+        } finally {
+            setPlacing(false);
+        }
     };
 
     return (
@@ -416,21 +483,27 @@ export default function CheckoutPage() {
                         )}
 
                         {/* PLACE ORDER */}
+                        {placeError && (
+                            <p style={{ color: "#b91c1c", marginTop: "8px" }}>
+                                {placeError}
+                            </p>
+                        )}
                         <button
                             onClick={placeOrder}
+                            disabled={placing}
                             style={{
                                 marginTop: "20px",
                                 width: "100%",
                                 padding: "12px",
-                                backgroundColor: "#000",
+                                backgroundColor: placing ? "#555" : "#000",
                                 color: "white",
                                 borderRadius: "8px",
                                 fontWeight: "bold",
                                 fontSize: "16px",
-                                cursor: "pointer",
+                                cursor: placing ? "not-allowed" : "pointer",
                             }}
                         >
-                            Place Order
+                            {placing ? "Placing..." : "Place Order"}
                         </button>
                     </div>
                 </div>

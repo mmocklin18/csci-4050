@@ -7,6 +7,7 @@ type BookingSummary = {
     movie: string | null;
     showtime: string | null;
     date: string | null;
+    showId?: string | null;
     tickets: {
         adults: number;
         children: number;
@@ -16,8 +17,21 @@ type BookingSummary = {
     showroom?: string;
 };
 
+type ApiSeat = {
+    seats_id: number;
+    showroom_id: number;
+    seat_no: number;
+    row_no: string;
+};
+
 type SeatLayoutRow = { row: string; max: number; seats: number[] };
 type TheaterKey = "theater1" | "theater2" | "theater3";
+
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
 
 //helpers to format date/time like on Booking page
 const getDateOnly = (value: string | null | undefined): string => {
@@ -131,6 +145,10 @@ export default function SeatSelectionPage() {
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
     const [currentTheaterKey, setCurrentTheaterKey] =
         useState<TheaterKey | null>(null);
+    const [availableSeatIds, setAvailableSeatIds] = useState<string[] | null>(null);
+    const [seatsLoading, setSeatsLoading] = useState(false);
+    const [seatsError, setSeatsError] = useState<string | null>(null);
+    const [seatLookup, setSeatLookup] = useState<Record<string, number>>({});
 
     useEffect(() => {
         const stored = localStorage.getItem("booking_summary");
@@ -155,6 +173,47 @@ export default function SeatSelectionPage() {
             setCurrentTheaterKey("theater1");
         }
     }, []);
+
+    // Fetch available seats for the selected show to map labels -> seat IDs
+    useEffect(() => {
+        if (!booking?.showId || !API_BASE) return;
+        let alive = true;
+        (async () => {
+            try {
+                setSeatsLoading(true);
+                setSeatsError(null);
+                const res = await fetch(
+                    `${API_BASE}/seats/show/${booking.showId}/available`,
+                    { cache: "no-store" }
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data: ApiSeat[] = await res.json();
+                if (!alive) return;
+                const ids = data.map(
+                    (seat) => `${seat.row_no}${seat.seat_no}`
+                );
+                const lookup: Record<string, number> = {};
+                for (const seat of data) {
+                    lookup[`${seat.row_no}${seat.seat_no}`] = seat.seats_id;
+                }
+                setAvailableSeatIds(ids);
+                setSeatLookup(lookup);
+            } catch (err) {
+                if (!alive) return;
+                setSeatsError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load seats"
+                );
+                setAvailableSeatIds(null);
+            } finally {
+                if (alive) setSeatsLoading(false);
+            }
+        })();
+        return () => {
+            alive = false;
+        };
+    }, [booking?.showId]);
 
     if (!booking || !currentTheaterKey) {
         return (
@@ -198,7 +257,19 @@ export default function SeatSelectionPage() {
 
     const activeTheater = THEATER_LAYOUTS[currentTheaterKey];
     const seatLayout = activeTheater.layout;
-    const unavailableSeats = activeTheater.unavailableSeats;
+    const baseUnavailable = activeTheater.unavailableSeats;
+    const layoutSeatIds = seatLayout.flatMap(({ row, seats }) =>
+        seats.map((seatNumber) => `${row}${seatNumber}`)
+    );
+    const unavailableFromBackend =
+        availableSeatIds === null
+            ? []
+            : layoutSeatIds.filter(
+                  (seatId) => !availableSeatIds.includes(seatId)
+              );
+    const unavailableSeats = Array.from(
+        new Set([...baseUnavailable, ...unavailableFromBackend])
+    );
 
     const totalTickets =
         booking
@@ -230,7 +301,30 @@ export default function SeatSelectionPage() {
             return;
         }
 
+        if (!booking?.showId) {
+            alert("Missing show ID for reservation.");
+            return;
+        }
+        if (!API_BASE) {
+            alert("API base URL not configured.");
+            return;
+        }
+        if (!availableSeatIds) {
+            alert("Seat availability not loaded yet. Please wait.");
+            return;
+        }
+
+        const seatIds = selectedSeats
+            .map((seat) => seatLookup[seat])
+            .filter((id): id is number => Boolean(id));
+
+        if (seatIds.length !== selectedSeats.length) {
+            alert("Could not resolve seat IDs for all selections.");
+            return;
+        }
+
         localStorage.setItem("selected_seats", JSON.stringify(selectedSeats));
+        localStorage.setItem("selected_seat_ids", JSON.stringify(seatIds));
 
         window.location.href = "/booking-summary";
     };

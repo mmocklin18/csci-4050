@@ -7,6 +7,7 @@ type BookingSummary = {
     movie: string | null;
     showtime: string | null;
     date: string | null;
+    showId?: string | null;
     tickets: {
         adults: number;
         children: number;
