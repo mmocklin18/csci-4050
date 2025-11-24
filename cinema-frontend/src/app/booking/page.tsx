@@ -1,32 +1,44 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-function formatShowtimeLabel(iso: string | null): string | null {
-    if (!iso) return null;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-}
+type ApiPrice = {
+    type: string;      // "adult" | "child" | "senior"
+    amount: number;    // e.g. 10.00
+};
 
-function extractDatePart(iso: string | null): string | null {
-    if (!iso) return null;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toISOString().split("T")[0];
-}
+type Prices = {
+    adult: number;
+    child: number;
+    senior: number;
+};
 
 export default function Booking() {
     const params = useSearchParams();
     const [adultTickets, setAdultTickets] = useState(0);
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
+
     const movieTitle = params.get("title");
-    const showtime = params.get("time");       // may contain date+time
+    const showtime = params.get("time"); // may contain date+time
     const showroomParam =
         params.get("showroom") || params.get("showroom_id") || null;
+
     const [selectedDate, setSelectedDate] = useState("");
+    const [prices, setPrices] = useState<Prices | null>(null);
+    const [pricesLoading, setPricesLoading] = useState(true);
+    const [pricesError, setPricesError] = useState<string | null>(null);
+
+    const increaseAdult = () => setAdultTickets((t) => t + 1);
+    const decreaseAdult = () => setAdultTickets((t) => (t > 0 ? t - 1 : 0));
+
+    const increaseChild = () => setChildTickets((t) => t + 1);
+    const decreaseChild = () => setChildTickets((t) => (t > 0 ? t - 1 : 0));
+
+    const increaseSenior = () => setSeniorTickets((t) => t + 1);
+    const decreaseSenior = () => setSeniorTickets((t) => (t > 0 ? t - 1 : 0));
+
 
     // helpers to cleanly separate date and time
     const getDateOnly = (value: string | null) => {
@@ -39,7 +51,6 @@ export default function Booking() {
 
     const getTimeOnly = (value: string | null) => {
         if (!value) return "";
-        // try to parse as Date first
         const d = new Date(value);
         if (!Number.isNaN(d.getTime())) {
             return d.toLocaleTimeString([], {
@@ -47,7 +58,6 @@ export default function Booking() {
                 minute: "2-digit",
             });
         }
-        // fallback: if "YYYY-MM-DD HH:MM:SS"
         if (value.includes(" ")) {
             const parts = value.split(" ");
             return parts[1] || value;
@@ -91,18 +101,16 @@ export default function Booking() {
         return value;
     };
 
-
     const formattedShowtime = getTimeOnly(showtime);
     const formattedDate = getDateOnly(selectedDate || showtime || null);
 
+    // Load stored date + ticket counts
     useEffect(() => {
-
         const storedDate = localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
             localStorage.setItem("selectedDate", storedDate);
         }
-
 
         const a = localStorage.getItem("tickets_adult");
         const c = localStorage.getItem("tickets_child");
@@ -112,7 +120,7 @@ export default function Booking() {
         if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
     }, []);
 
-
+    // Persist ticket counts
     useEffect(() => {
         localStorage.setItem("tickets_adult", String(adultTickets));
     }, [adultTickets]);
@@ -123,20 +131,59 @@ export default function Booking() {
         localStorage.setItem("tickets_senior", String(seniorTickets));
     }, [seniorTickets]);
 
+    // 🔹 Fetch prices from backend
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setPricesLoading(true);
+                setPricesError(null);
 
-    const increaseAdult = () => setAdultTickets((t) => t + 1);
-    const decreaseAdult = () => setAdultTickets((t) => (t > 0 ? t - 1 : 0));
+                // Adjust this path to match your FastAPI route
+                const res = await fetch("/api/prices", { cache: "no-store" });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
 
-    const increaseChild = () => setChildTickets((t) => t + 1);
-    const decreaseChild = () => setChildTickets((t) => (t > 0 ? t - 1 : 0));
+                const data: ApiPrice[] = await res.json();
 
-    const increaseSenior = () => setSeniorTickets((t) => t + 1);
-    const decreaseSenior = () => setSeniorTickets((t) => (t > 0 ? t - 1 : 0));
+                if (!alive) return;
 
+                const normalized: Prices = {
+                    adult: 0,
+                    child: 0,
+                    senior: 0,
+                };
 
-    const ADULT_PRICE = 12.0;
-    const CHILD_PRICE = 8.0;
-    const SENIOR_PRICE = 9.0;
+                for (const row of data) {
+                    const key = row.type.toLowerCase();
+                    if (key === "adult") normalized.adult = row.amount;
+                    if (key === "child") normalized.child = row.amount;
+                    if (key === "senior") normalized.senior = row.amount;
+                }
+
+                setPrices(normalized);
+            } catch (err: unknown) {
+                if (!alive) return;
+                setPricesError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load prices"
+                );
+            } finally {
+                if (alive) setPricesLoading(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    // Use DB prices (fall back to 0 if not loaded)
+    const ADULT_PRICE = prices?.adult ?? 0;
+    const CHILD_PRICE = prices?.child ?? 0;
+    const SENIOR_PRICE = prices?.senior ?? 0;
 
     const adultSubtotal = adultTickets * ADULT_PRICE;
     const childSubtotal = childTickets * CHILD_PRICE;
@@ -199,7 +246,8 @@ export default function Booking() {
                     }}
                 >
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Movie:</strong> {movieTitle || "Not specified"}
+                        <strong>Movie:</strong>{" "}
+                        {movieTitle || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
@@ -217,6 +265,18 @@ export default function Booking() {
                         {showroomParam || "Not specified"}
                     </div>
                 </div>
+
+                {/* Optional: show price loading / error */}
+                {pricesLoading && (
+                    <p style={{ color: "#555", marginBottom: "8px" }}>
+                        Loading ticket prices…
+                    </p>
+                )}
+                {pricesError && (
+                    <p style={{ color: "#b91c1c", marginBottom: "8px" }}>
+                        Could not load prices. Using $0.00 defaults.
+                    </p>
+                )}
 
                 {/* Ticket counters */}
                 <div
@@ -259,15 +319,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Adults</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${ADULT_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseAdult}
                                 style={{
@@ -336,15 +392,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Children</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${CHILD_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseChild}
                                 style={{
@@ -413,15 +465,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Seniors</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${SENIOR_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseSenior}
                                 style={{
