@@ -4,9 +4,10 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
 type ApiPrice = {
-    type: string;      // "adult" | "child" | "senior"
-    amount: number;    // e.g. 10.00
+    type: string;           // "adult" | "child" | "senior"
+    amount: number | string; // Decimal may come as "10.00"
 };
+
 
 type Prices = {
     adult: number;
@@ -139,7 +140,6 @@ export default function Booking() {
                 setPricesLoading(true);
                 setPricesError(null);
 
-                // Adjust this path to match your FastAPI route
                 const res = await fetch("/api/prices", { cache: "no-store" });
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
@@ -156,19 +156,24 @@ export default function Booking() {
                 };
 
                 for (const row of data) {
-                    const key = row.type.toLowerCase();
-                    if (key === "adult") normalized.adult = row.amount;
-                    if (key === "child") normalized.child = row.amount;
-                    if (key === "senior") normalized.senior = row.amount;
+                    const key = row.type.toLowerCase().trim();
+                    const amountNum =
+                        typeof row.amount === "string"
+                            ? parseFloat(row.amount)
+                            : row.amount;
+
+                    if (!Number.isFinite(amountNum)) continue;
+
+                    if (key === "adult") normalized.adult = amountNum;
+                    if (key === "child") normalized.child = amountNum;
+                    if (key === "senior") normalized.senior = amountNum;
                 }
 
                 setPrices(normalized);
             } catch (err: unknown) {
                 if (!alive) return;
                 setPricesError(
-                    err instanceof Error
-                        ? err.message
-                        : "Failed to load prices"
+                    err instanceof Error ? err.message : "Failed to load prices"
                 );
             } finally {
                 if (alive) setPricesLoading(false);
@@ -179,6 +184,7 @@ export default function Booking() {
             alive = false;
         };
     }, []);
+
 
     // Use DB prices (fall back to 0 if not loaded)
     const ADULT_PRICE = prices?.adult ?? 0;

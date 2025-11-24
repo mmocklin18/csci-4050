@@ -16,6 +16,17 @@ type BookingSummary = {
     showroom?: string;
 };
 
+type ApiPrice = {
+    type: string;   // "adult" | "child" | "senior"
+    amount: number; // e.g. 10.00
+};
+
+type Prices = {
+    adult: number;
+    child: number;
+    senior: number;
+};
+
 const formatPrettyDate = (value: string | null | undefined): string => {
     if (!value) return "";
     let datePart = value.trim();
@@ -74,12 +85,6 @@ const formatShowtime = (value: string | null | undefined): string => {
     return value;
 };
 
-const showroomNames: Record<string, string> = {
-    "1": "Showroom 1",
-    "2": "Showroom 2",
-    "3": "Showroom 3",
-};
-
 const getShowroomLabel = (showroomId?: string): string => {
     if (!showroomId) return "Not specified";
 
@@ -91,11 +96,15 @@ const getShowroomLabel = (showroomId?: string): string => {
     return match ? match[0] : "Not specified";
 };
 
-
 export default function BookingSummaryPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
     const [selectedTheater, setSelectedTheater] = useState<string | null>(null);
+
+    // prices from backend
+    const [prices, setPrices] = useState<Prices | null>(null);
+    const [pricesLoading, setPricesLoading] = useState(true);
+    const [pricesError, setPricesError] = useState<string | null>(null);
 
     useEffect(() => {
         const storedBooking = localStorage.getItem("booking_summary");
@@ -123,9 +132,58 @@ export default function BookingSummaryPage() {
         }
     }, []);
 
-    const ADULT_PRICE = 12.0;
-    const CHILD_PRICE = 8.0;
-    const SENIOR_PRICE = 9.0;
+    // Fetch prices from backend (same as Booking page)
+    useEffect(() => {
+        let alive = true;
+
+        (async () => {
+            try {
+                setPricesLoading(true);
+                setPricesError(null);
+
+                const res = await fetch("/api/prices", { cache: "no-store" });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data: ApiPrice[] = await res.json();
+                if (!alive) return;
+
+                const normalized: Prices = {
+                    adult: 0,
+                    child: 0,
+                    senior: 0,
+                };
+
+                for (const row of data) {
+                    const key = row.type.toLowerCase();
+                    if (key === "adult") normalized.adult = row.amount;
+                    if (key === "child") normalized.child = row.amount;
+                    if (key === "senior") normalized.senior = row.amount;
+                }
+
+                setPrices(normalized);
+            } catch (err: unknown) {
+                if (!alive) return;
+                setPricesError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load prices"
+                );
+            } finally {
+                if (alive) setPricesLoading(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    // Use DB prices (fallback to 0 while loading / on error)
+    const ADULT_PRICE = prices?.adult ?? 0;
+    const CHILD_PRICE = prices?.child ?? 0;
+    const SENIOR_PRICE = prices?.senior ?? 0;
 
     const adults = booking?.tickets.adults ?? 0;
     const children = booking?.tickets.children ?? 0;
@@ -137,6 +195,7 @@ export default function BookingSummaryPage() {
     const totalTickets = adults + children + seniors;
 
     const computedTotal = adultSubtotal + childSubtotal + seniorSubtotal;
+    // booking.total was computed on the Booking page using DB prices
     const finalTotal = booking?.total ?? computedTotal;
 
     const formattedDate = formatPrettyDate(booking?.date);
@@ -214,6 +273,19 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
+                {/* Optional: price loading / error messages */}
+                {pricesLoading && (
+                    <p style={{ color: "#555", marginBottom: "8px" }}>
+                        Loading ticket prices…
+                    </p>
+                )}
+                {pricesError && (
+                    <p style={{ color: "#b91c1c", marginBottom: "8px" }}>
+                        Could not load prices. Showing $0.00 until refreshed.
+                    </p>
+                )}
+
+                {/* Ticket breakdown + total */}
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -223,7 +295,7 @@ export default function BookingSummaryPage() {
                         width: "90%",
                         maxWidth: "420px",
                         marginBottom: "16px",
-                        boxShadow: "0 3px 10px rgba(0,0,0,0.12)",
+                        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.12)",
                     }}
                 >
                     <h2
@@ -317,6 +389,7 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
+                {/* Seats list */}
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -325,7 +398,7 @@ export default function BookingSummaryPage() {
                         border: "1px solid #ccc",
                         width: "90%",
                         maxWidth: "420px",
-                        boxShadow: "0 3px 10px rgba(0,0,0,0.12)",
+                        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.12)",
                         marginBottom: "24px",
                     }}
                 >
@@ -338,7 +411,7 @@ export default function BookingSummaryPage() {
                             color: "#111",
                         }}
                     >
-                        Selected Seats
+                        Selected Seat(s)
                     </h2>
 
                     {seats.length === 0 ? (
