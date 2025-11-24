@@ -1,34 +1,18 @@
 from fastapi import FastAPI
 from app.routers.health import router as health_router
-from app.routers.movies import router as movie_router
-from app.routers.auth import router as auth_router
-from app.routers.user import router as user_router
-from app.routers.card import router as card_router
-from app.routers.email import router as email_router
-from app.routers.booking import router as booking_router
-from app.routers.showroom import router as showroom_router
-from app.routers.show import router as show_router
-from app.routers.seat import router as seat_router
-from app.routers.promotions import router as promotions_router
-from app.routers.price import router as price_router
-
-
 from fastapi.middleware.cors import CORSMiddleware
-
-
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000"
-    ],
+    allow_origins=["http://localhost:3000"],  # Next.js dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(health_router, prefix="/api")
 
 app.include_router(health_router)
 app.include_router(movie_router)

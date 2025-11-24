@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException 
-from sqlalchemy import text                           
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.db import get_session
+from sqlalchemy.orm import Session
+from ..core.dependencies import get_db
+from ..core import config
 
 router = APIRouter(prefix="/healthcheck", tags=["health"])
 
@@ -12,11 +12,15 @@ async def healthcheck():
     return {"status": "ok"}
 
 @router.get("/db")
-async def db_health(db: AsyncSession = Depends(get_session)):
-    """Check db connection works"""
-    try:
-        r = await db.execute(text("SELECT 1"))
-        return {"db": "ok", "result": r.scalar_one()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DB error: {e}")
-    
+def healthcheck_db(db: Session = Depends(get_db)):
+    # trivial query to prove DB + SSL work
+    db.execute("SELECT 1")
+    return {
+        "status": "ok",
+        "db": "ok",
+        "ssl_ca_in_use": True if getattr(config, "CA_PATH", None) else False,
+        "ca_path": getattr(config, "CA_PATH", None),
+    }
+
+
+
