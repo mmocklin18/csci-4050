@@ -380,16 +380,6 @@ function MovieCard({ movie }: { movie: Movie }) {
                 </div>
             </Link>
 
-            <div className="showtimes">
-                {movie.showtimes.length ? (
-                    movie.showtimes.map((t) => (
-                        <span className="showtimeStyle" key={t}>{t}</span>
-                    ))
-                ) : (
-                    <span className="showtimeStyle">Showtimes TBA</span>
-                )}
-            </div>
-
             <style jsx>{`
         .card {
           background: #fff;

@@ -1,7 +1,21 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+
+function formatShowtimeLabel(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function extractDatePart(iso: string | null): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().split("T")[0];
+}
 
 export default function Booking() {
     const params = useSearchParams();
@@ -82,10 +96,13 @@ export default function Booking() {
     const formattedDate = getDateOnly(selectedDate || showtime || null);
 
     useEffect(() => {
+
         const storedDate = localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
+            localStorage.setItem("selectedDate", storedDate);
         }
+
 
         const a = localStorage.getItem("tickets_adult");
         const c = localStorage.getItem("tickets_child");
@@ -94,6 +111,7 @@ export default function Booking() {
         if (c !== null) setChildTickets(parseInt(c, 10) || 0);
         if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
     }, []);
+
 
     useEffect(() => {
         localStorage.setItem("tickets_adult", String(adultTickets));
@@ -105,6 +123,7 @@ export default function Booking() {
         localStorage.setItem("tickets_senior", String(seniorTickets));
     }, [seniorTickets]);
 
+
     const increaseAdult = () => setAdultTickets((t) => t + 1);
     const decreaseAdult = () => setAdultTickets((t) => (t > 0 ? t - 1 : 0));
 
@@ -113,6 +132,7 @@ export default function Booking() {
 
     const increaseSenior = () => setSeniorTickets((t) => t + 1);
     const decreaseSenior = () => setSeniorTickets((t) => (t > 0 ? t - 1 : 0));
+
 
     const ADULT_PRICE = 12.0;
     const CHILD_PRICE = 8.0;
