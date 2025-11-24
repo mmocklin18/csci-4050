@@ -18,14 +18,18 @@ export default function PromotionForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!startDate || !endDate) {
+      alert("Please provide both a start date and an end date.");
+      return;
+    }
+
     try {
       const payload: Record<string, unknown> = {
         code: code.trim(),
         discount: parseFloat(discount),
+        start_date: startDate,
+        end_date: endDate,
       };
-
-      if (startDate) payload.start_date = startDate;
-      if (endDate) payload.end_date = endDate;
 
       const res = await fetch(`${API_BASE}/admin/promotions/`, {
         method: "POST",
@@ -181,6 +185,7 @@ export default function PromotionForm() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            required
             style={{
               padding: "8px",
               borderRadius: "8px",
@@ -216,6 +221,7 @@ export default function PromotionForm() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            required
             style={{
               padding: "8px",
               borderRadius: "8px",
