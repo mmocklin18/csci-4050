@@ -180,6 +180,7 @@ export default function PromotionForm() {
           <input
             type="date"
             value={startDate}
+            required
             onChange={(e) => setStartDate(e.target.value)}
             style={{
               padding: "8px",
@@ -214,6 +215,7 @@ export default function PromotionForm() {
           </label>
           <input
             type="date"
+            required
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             style={{
