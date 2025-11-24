@@ -21,7 +21,13 @@ type ApiMovie = {
     main_genre: string;
 };
 
-const DefaultShowtimes = ["12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"];
+type ApiShow = {
+    show_id: number;
+    movieid: number;
+    showroom_id: number;
+    date_time: string;
+    duration: number;
+};
 
 function toYouTubeEmbed(url?: string | null): string | undefined {
     if (!url) return undefined;
@@ -50,7 +56,6 @@ type UiMovie = {
     description: string;
     posterUrl: string;
     trailerEmbedUrl?: string;
-    showtimes: string[];
 };
 
 function mapApiToUi(m: ApiMovie) {
@@ -61,8 +66,19 @@ function mapApiToUi(m: ApiMovie) {
         description: m.description,
         posterUrl: m.poster ?? "/placeholder.png",
         trailerEmbedUrl: toYouTubeEmbed(m.trailer),
-        showtimes: DefaultShowtimes, // hardcode showtimes
     };
+}
+
+function showDateValue(dateStr: string): string {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toISOString().split("T")[0];
+}
+
+function formatShowLabel(dateStr: string): string {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "TBA";
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
 export default function MovieDetails() {
@@ -72,6 +88,9 @@ export default function MovieDetails() {
     const [movie, setMovie] = useState<ReturnType<typeof mapApiToUi> | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showtimes, setShowtimes] = useState<ApiShow[]>([]);
+    const [showtimeErr, setShowtimeErr] = useState<string | null>(null);
+    const [showtimeLoading, setShowtimeLoading] = useState(true);
 
     useEffect(() => {
         if (date) localStorage.setItem("selectedDate", date);
@@ -94,9 +113,51 @@ export default function MovieDetails() {
         })();
     }, [id]);
 
+    useEffect(() => {
+        if (!id) return;
+        let alive = true;
+        (async () => {
+            try {
+                setShowtimeLoading(true);
+                const res = await fetch(`/api/shows?movie_id=${encodeURIComponent(String(id))}`, {
+                    cache: "no-store",
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data: ApiShow[] = await res.json();
+                if (!alive) return;
+                setShowtimes(data ?? []);
+                setShowtimeErr(null);
+            } catch (error: unknown) {
+                if (!alive) return;
+                setShowtimes([]);
+                setShowtimeErr(error instanceof Error ? error.message : "Failed to load showtimes");
+            } finally {
+                if (alive) setShowtimeLoading(false);
+            }
+        })();
+        return () => {
+            alive = false;
+        };
+    }, [id]);
+
+    useEffect(() => {
+        if (!date && showtimes.length) {
+            const first = showDateValue(showtimes[0].date_time);
+            if (first) setDate(first);
+        }
+    }, [showtimes, date]);
+
+    const filteredShowtimes = showtimes.filter((show) => {
+        if (!date) return true;
+        return showDateValue(show.date_time) === date;
+    });
+
     if (loading) return <main className="p-6">Loading…</main>;
     if (err) return <main className="p-6 text-red-600">Error: {err}</main>;
     if (!movie) return <main className="p-6">Movie not found.</main>;
+
+    const showtimesFiltered = filteredShowtimes.length ? filteredShowtimes : showtimes;
+    const noMatchesForDate = Boolean(date && filteredShowtimes.length === 0 && showtimes.length > 0);
 
     return (
 		<div style={{ backgroundColor: "#fff", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0}}>
@@ -158,56 +219,53 @@ export default function MovieDetails() {
                     </div>
 
 					<h2 style={{color: "black"}}><strong>Showtimes (select one below):</strong></h2>
-					{/*List of showtimes as clickable links to booking page*/}
-					<ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "5px"}}>
-                        {movie.showtimes.map((time) => {
-                            const href = `/booking?title=${encodeURIComponent(movie.title)}&time=${encodeURIComponent(time)}${date ? `&date=${encodeURIComponent(date)}` : ""}`;
-                            return (
-                                <li key={time}>
-                                    {date ? (
-                                        <Link
-                                            href={href}
-                                            style={{
-                                                display: "inline-block",
-                                                padding: "8px 16px",
-                                                margin: "4px",
-                                                backgroundColor: "#000000ff",
-                                                color: "white",
-                                                borderRadius: "8px",
-                                                textDecoration: "none",
-                                                fontWeight: "bold",
-                                                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                                                transition: "background-color 0.3s ease",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            {time}
-                                        </Link>
-                                    ) : (
-                                        <button
-                                            onClick={() => alert("Please select a date before choosing a showtime.")}
-                                            aria-disabled={true}
-                                            style={{
-                                                display: "inline-block",
-                                                padding: "8px 16px",
-                                                margin: "4px",
-                                                backgroundColor: "#cccccc",
-                                                color: "#666666",
-                                                borderRadius: "8px",
-                                                textDecoration: "none",
-                                                fontWeight: "bold",
-                                                boxShadow: "none",
-                                                border: "none",
-                                                cursor: "not-allowed",
-                                            }}
-                                        >
-                                            {time}
-                                        </button>
-                                    )}
-                                </li>
-                            );
-                        })}
-					</ul>
+					{showtimeLoading ? (
+						<p style={{ color: "#555" }}>Loading showtimes…</p>
+					) : showtimeErr ? (
+						<p style={{ color: "#b91c1c" }}>Error loading showtimes: {showtimeErr}</p>
+					) : showtimes.length === 0 ? (
+						<p style={{ color: "#555" }}>No showtimes scheduled yet. Please check back later.</p>
+					) : (
+						<>
+							{noMatchesForDate && (
+								<p style={{ color: "#b45309" }}>No showtimes on the selected date. Showing all upcoming times instead.</p>
+							)}
+							<ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "5px"}}>
+								{showtimesFiltered.map((show) => {
+									const label = formatShowLabel(show.date_time);
+									const showDate = showDateValue(show.date_time);
+									const href = `/booking?title=${encodeURIComponent(movie.title)}&showId=${show.show_id}&time=${encodeURIComponent(show.date_time)}${showDate ? `&date=${encodeURIComponent(showDate)}` : ""}`;
+									return (
+										<li key={show.show_id}>
+											<Link
+												href={href}
+												onClick={() => {
+													if (showDate) {
+														localStorage.setItem("selectedDate", showDate);
+													}
+												}}
+												style={{
+													display: "inline-block",
+													padding: "8px 16px",
+													margin: "4px",
+													backgroundColor: "#000000ff",
+													color: "white",
+													borderRadius: "8px",
+													textDecoration: "none",
+													fontWeight: "bold",
+													boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+													transition: "background-color 0.3s ease",
+													cursor: "pointer",
+												}}
+											>
+												{label}
+											</Link>
+										</li>
+									);
+								})}
+							</ul>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -226,4 +284,3 @@ export default function MovieDetails() {
 		</div>
 	);
 }
-

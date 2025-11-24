@@ -59,12 +59,19 @@ export default function ShowtimeForm() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to add showtime");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.detail || "Failed to add showtime");
+      }
       alert("Showtime added successfully!");
       router.push("/admin/showtimes");
     } catch (err) {
       console.error(err);
-      alert("Error adding showtime.");
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Error adding showtime.");
+      }
     }
   };
 
