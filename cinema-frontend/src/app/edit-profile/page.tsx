@@ -254,9 +254,7 @@ export default function EditProfilePage() {
           flexWrap: "wrap",
         }}
       >
-        {/* LEFT COLUMN — Current Info + Payment Methods */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          {/* CURRENT INFO */}
           <div
             style={{
               border: "1px solid #ccc",
@@ -293,7 +291,6 @@ export default function EditProfilePage() {
             </p>
           </div>
 
-          {/* PAYMENT METHODS */}
           <div
             style={{
               border: "1px solid #ccc",
@@ -371,7 +368,6 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Edit Info */}
         <form
           onSubmit={handleSubmit}
           style={{

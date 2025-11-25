@@ -182,7 +182,6 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Edit Button */}
         <div style={{ textAlign: "center", marginTop: "30px" }}>
           <button
             onClick={() => router.push("/edit-profile")}
