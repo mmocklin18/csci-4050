@@ -15,6 +15,7 @@ type BookingSummary = {
     };
     total: number;
     showroom?: string;
+    showId?: string | null;
 };
 
 type ApiPrice = {
@@ -111,6 +112,7 @@ export default function BookingSummaryPage() {
         const storedBooking = localStorage.getItem("booking_summary");
         const storedSeats = localStorage.getItem("selected_seats");
         const storedTheater = localStorage.getItem("selected_theater");
+        const storedTheater = localStorage.getItem("selected_theater");
 
         if (storedBooking) {
             try {
@@ -126,6 +128,10 @@ export default function BookingSummaryPage() {
             } catch {
                 // ignore parse errors
             }
+        }
+
+        if (storedTheater) {
+            setSelectedTheater(storedTheater);
         }
 
         if (storedTheater) {
@@ -248,6 +254,7 @@ export default function BookingSummaryPage() {
                     flexDirection: "column",
                     alignItems: "center",
                     paddingBottom: "40px",
+                    paddingBottom: "40px",
                 }}
             >
 
@@ -278,9 +285,16 @@ export default function BookingSummaryPage() {
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
                         <strong>Date:</strong>{" "}
                         {formattedDate || "Not specified"}
+                        {formattedShowtime || "Not specified"}
+                    </div>
+
+                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
+                        <strong>Date:</strong>{" "}
+                        {formattedDate || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px" }}>
+                        <strong>Showroom:</strong> {showroomLabel}
                         <strong>Showroom:</strong> {showroomLabel}
                     </div>
                 </div>

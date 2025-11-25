@@ -6,7 +6,6 @@ import Navbar from "@/components/Navbar";
 interface MovieOption {
   movie_id: number;
   name: string;
-  runtime: number;
 }
 
 interface ShowroomOption {
@@ -20,7 +19,7 @@ export default function ShowtimeForm() {
   const [movieId, setMovieId] = useState("");
   const [showroomId, setShowroomId] = useState("");
   const [showtime, setShowtime] = useState("");
-  const [duration, setDuration] = useState("");
+  const [duration, setDuration] = useState("120");
   const router = useRouter();
 
   useEffect(() => {
@@ -139,20 +138,7 @@ export default function ShowtimeForm() {
           </label>
           <select
             value={movieId}
-            onChange={(e) => {
-            const id = e.target.value;
-            setMovieId(id);
-
-            const selectedMovie = movies.find(
-              (movie) => movie.movie_id === parseInt(id)
-          );
-
-          if (selectedMovie) {
-            setDuration(String(selectedMovie.runtime));
-          }
-      }}
-
-
+            onChange={(e) => setMovieId(e.target.value)}
             required
             style={{
               padding: "8px",
@@ -275,7 +261,7 @@ export default function ShowtimeForm() {
             min="30"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            disabled
+            required
             style={{
               padding: "8px",
               borderRadius: "8px",

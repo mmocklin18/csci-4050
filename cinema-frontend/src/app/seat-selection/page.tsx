@@ -3,6 +3,12 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
+
 type BookingSummary = {
     movie: string | null;
     showtime: string | null;
@@ -14,11 +20,13 @@ type BookingSummary = {
     };
     total: number;
     showroom?: string;
+    showId?: string | null;
 };
 
 type SeatLayoutRow = { row: string; max: number; seats: number[] };
 type TheaterKey = "theater1" | "theater2" | "theater3";
 
+//helpers to format date/time like on Booking page
 const getDateOnly = (value: string | null | undefined): string => {
     if (!value) return "";
     const v = value.trim();
@@ -130,6 +138,9 @@ export default function SeatSelectionPage() {
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
     const [currentTheaterKey, setCurrentTheaterKey] =
         useState<TheaterKey | null>(null);
+    const [fetchedUnavailable, setFetchedUnavailable] = useState<string[] | null>(
+        null
+    );
 
     useEffect(() => {
         const stored = localStorage.getItem("booking_summary");
@@ -138,7 +149,7 @@ export default function SeatSelectionPage() {
                 const parsed: BookingSummary = JSON.parse(stored);
                 setBooking(parsed);
 
-                let key: TheaterKey = "theater1";
+                let key: TheaterKey = "theater1"; // fallback
                 if (parsed.showroom) {
                     const fromShowroom = showroomToKey[parsed.showroom];
                     if (fromShowroom) {
@@ -150,9 +161,65 @@ export default function SeatSelectionPage() {
                 console.error("Error parsing booking_summary", err);
             }
         } else {
+            // no booking summary, still avoid null
             setCurrentTheaterKey("theater1");
         }
     }, []);
+
+    useEffect(() => {
+        if (!booking?.showId || !currentTheaterKey || !API_BASE) return;
+
+        const showIdNum = Number(booking.showId);
+        if (Number.isNaN(showIdNum)) return;
+
+        const controller = new AbortController();
+
+        type SeatResponse = { seats_id: number; seat_no: number; row_no: string };
+
+        const fetchUnavailable = async () => {
+            try {
+                const res = await fetch(
+                    `${API_BASE}/seats/show/${encodeURIComponent(
+                        showIdNum
+                    )}/available`,
+                    { cache: "no-store", signal: controller.signal }
+                );
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || "Failed to load available seats");
+                }
+
+                const available: SeatResponse[] = await res.json();
+                const availableSet = new Set(
+                    available.map(
+                        (seat) => `${String(seat.row_no).toUpperCase()}${seat.seat_no}`
+                    )
+                );
+
+                const layout = THEATER_LAYOUTS[currentTheaterKey].layout;
+                const taken: string[] = [];
+
+                for (const { row, seats } of layout) {
+                    for (const seatNum of seats) {
+                        const label = `${row}${seatNum}`;
+                        if (!availableSet.has(label)) {
+                            taken.push(label);
+                        }
+                    }
+                }
+
+                setFetchedUnavailable(taken);
+            } catch (err) {
+                console.error("Error loading seats for show", err);
+                setFetchedUnavailable(null);
+            }
+        };
+
+        fetchUnavailable();
+
+        return () => controller.abort();
+    }, [booking?.showId, currentTheaterKey]);
 
     if (!booking || !currentTheaterKey) {
         return (
@@ -196,7 +263,7 @@ export default function SeatSelectionPage() {
 
     const activeTheater = THEATER_LAYOUTS[currentTheaterKey];
     const seatLayout = activeTheater.layout;
-    const unavailableSeats = activeTheater.unavailableSeats;
+    const unavailableSeats = fetchedUnavailable ?? activeTheater.unavailableSeats;
 
     const totalTickets =
         booking
@@ -233,6 +300,7 @@ export default function SeatSelectionPage() {
         window.location.href = "/booking-summary";
     };
 
+    // formatted date/time for display
     const formattedShowtime = getTimeOnly(booking?.showtime);
     const formattedDate = getDateOnly(booking?.date);
 
@@ -264,7 +332,7 @@ export default function SeatSelectionPage() {
                 Seat Selection
             </h1>
 
-
+            {/* Booking info + showroom */}
             <div
                 style={{
                     display: "flex",
@@ -309,7 +377,7 @@ export default function SeatSelectionPage() {
                 </div>
             </div>
 
-
+            {/* Seat map */}
             <div
                 style={{
                     display: "flex",
@@ -347,7 +415,7 @@ export default function SeatSelectionPage() {
                                 {row}
                             </div>
 
-
+                            {/* Seats */}
                             <div style={{ display: "flex", gap: "4px" }}>
                                 {Array.from({ length: max }, (_, i) => {
                                     const seatNumber = i + 1;
@@ -378,6 +446,7 @@ export default function SeatSelectionPage() {
                                     let displayText: string | number =
                                         seatNumber;
 
+                                    // Unavailable -> red X
                                     if (isUnavailable) {
                                         bg = "red";
                                         textColor = "white";
@@ -447,11 +516,12 @@ export default function SeatSelectionPage() {
                             fontSize: "13px",
                         }}
                     >
-                        SCREEN
+                        STAGE
                     </div>
                 </div>
             </div>
 
+            {/* Selection summary + button */}
             <div
                 style={{
                     display: "flex",

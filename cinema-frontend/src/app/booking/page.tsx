@@ -22,7 +22,8 @@ export default function Booking() {
     const [seniorTickets, setSeniorTickets] = useState(0);
 
     const movieTitle = params.get("title");
-    const showtime = params.get("time");
+    const showtime = params.get("time"); // may contain date+time
+    const showId = params.get("showId");
     const showroomParam =
         params.get("showroom") || params.get("showroom_id") || null;
 
@@ -271,6 +272,7 @@ export default function Booking() {
                     </div>
                 </div>
 
+                {/* Optional: show price loading / error */}
                 {pricesLoading && (
                     <p style={{ color: "#555", marginBottom: "8px" }}>
                         Loading ticket prices…
@@ -588,6 +590,7 @@ export default function Booking() {
                                 },
                                 total: totalPrice,
                                 showroom: showroomParam || null,
+                                showId: showId || null,
                             };
 
                             localStorage.setItem(
