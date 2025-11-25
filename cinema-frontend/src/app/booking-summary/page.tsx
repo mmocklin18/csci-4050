@@ -16,6 +16,7 @@ type BookingSummary = {
     showroom?: string;
 };
 
+// Pretty date: "2025-11-25" -> "November 25, 2025"
 const formatPrettyDate = (value: string | null | undefined): string => {
     if (!value) return "";
     let datePart = value.trim();
@@ -51,46 +52,24 @@ const formatPrettyDate = (value: string | null | undefined): string => {
     return value;
 };
 
-const formatShowtime = (value: string | null | undefined): string => {
-    if (!value) return "";
-
-    const d = new Date(value);
-    if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    }
-
-    if (value.includes("T")) {
-        const timePart = value.split("T")[1] ?? "";
-        return timePart.split(" ")[0];
-    }
-    if (value.includes(" ")) {
-        const parts = value.split(" ");
-        return parts[1] || value;
-    }
-
-    return value;
-};
-
 const showroomNames: Record<string, string> = {
     "1": "Showroom 1",
     "2": "Showroom 2",
     "3": "Showroom 3",
 };
 
-const getShowroomLabel = (showroomId?: string): string => {
-    if (!showroomId) return "Not specified";
-
-    if (["1", "2", "3"].includes(showroomId.trim())) {
-        return showroomId.trim();
+const getShowroomLabel = (
+    showroomId?: string,
+    selectedTheater?: string | null
+): string => {
+    if (selectedTheater && selectedTheater.trim() !== "") {
+        return selectedTheater;
     }
-
-    const match = showroomId.match(/\d+/);
-    return match ? match[0] : "Not specified";
+    if (showroomId && showroomNames[showroomId]) {
+        return showroomNames[showroomId];
+    }
+    return showroomId || "Not specified";
 };
-
 
 export default function BookingSummaryPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
@@ -140,8 +119,10 @@ export default function BookingSummaryPage() {
     const finalTotal = booking?.total ?? computedTotal;
 
     const formattedDate = formatPrettyDate(booking?.date);
-    const formattedShowtime = formatShowtime(booking?.showtime);
-    const showroomLabel = getShowroomLabel(booking?.showroom);
+    const showroomLabel = getShowroomLabel(
+        booking?.showroom,
+        selectedTheater
+    );
 
     return (
         <div
@@ -201,7 +182,7 @@ export default function BookingSummaryPage() {
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
                         <strong>Showtime:</strong>{" "}
-                        {formattedShowtime || "Not specified"}
+                        {booking?.showtime ?? "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
@@ -214,6 +195,7 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
+                {/* Ticket breakdown + total */}
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -317,6 +299,7 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
+                {/* Seats list */}
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -364,6 +347,7 @@ export default function BookingSummaryPage() {
                     )}
                 </div>
 
+                {/* 🔽 New Continue to Checkout button */}
                 <button
                     onClick={() => {
                         window.location.href = "/checkout";

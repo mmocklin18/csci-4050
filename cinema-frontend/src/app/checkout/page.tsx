@@ -42,24 +42,6 @@ const formatPrettyDate = (value: string | null | undefined): string => {
     return value;
 };
 
-// NEW: format showtime as just the time (e.g. "2:00 PM")
-const formatTimeOnly = (value: string | null | undefined): string => {
-    if (!value) return "";
-    const d = new Date(value);
-    if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    }
-    // fallback for "YYYY-MM-DD HH:MM:SS" style strings
-    if (value.includes(" ")) {
-        const parts = value.split(" ");
-        return parts[1] || value;
-    }
-    return value;
-};
-
 type PaymentOptionId = "saved1" | "saved2" | "new";
 
 const SAVED_METHODS = [
@@ -90,7 +72,6 @@ export default function CheckoutPage() {
 
     const baseTotal = booking?.total ?? 0;
     const datePretty = formatPrettyDate(booking?.date);
-    const timePretty = formatTimeOnly(booking?.showtime); // NEW
 
     let discount = 0;
     if (appliedCode === "SAVE10") discount = baseTotal * 0.1;
@@ -155,6 +136,7 @@ export default function CheckoutPage() {
                     gap: "20px",
                 }}
             >
+                {/* LEFT SIDE — MOVIE + TICKETS + TOTAL */}
                 <div style={{ flex: 1, minWidth: "300px" }}>
                     <div
                         style={{
@@ -176,15 +158,11 @@ export default function CheckoutPage() {
                         </h2>
 
                         <p><strong>Movie:</strong> {booking?.movie}</p>
+                        <p><strong>Showtime:</strong> {booking?.showtime}</p>
                         <p><strong>Date:</strong> {datePretty}</p>
-                        {/* UPDATED SHOWTIME LINE */}
-                        <p>
-                            <strong>Showtime:</strong>{" "}
-                            {timePretty || "Not specified"}
-                        </p>
-                        <p><strong>Tickets:</strong> {totalTickets}</p>
                         <p><strong>Showroom:</strong> {booking?.showroom}</p>
-                        <p><strong>Seat(s):</strong> {seats.join(", ")}</p>
+                        <p><strong>Tickets:</strong> {totalTickets}</p>
+                        <p><strong>Seats:</strong> {seats.join(", ")}</p>
 
                         <hr style={{ margin: "10px 0" }} />
 
@@ -225,7 +203,6 @@ export default function CheckoutPage() {
 
                 {/* RIGHT SIDE — PROMO + PAYMENT */}
                 <div style={{ flex: 1, minWidth: "300px" }}>
-                    {/* Promo & Payment sections unchanged */}
                     {/* PROMO CODE */}
                     <div
                         style={{
@@ -252,7 +229,7 @@ export default function CheckoutPage() {
                                 type="text"
                                 value={promoCode}
                                 onChange={(e) => setPromoCode(e.target.value)}
-                                placeholder="Enter Promo Code"
+                                placeholder="SAVE10, FIVEOFF"
                                 style={{
                                     flex: 1,
                                     padding: "8px",
