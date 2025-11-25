@@ -3,6 +3,12 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
+
 type BookingSummary = {
     movie: string | null;
     showtime: string | null;
@@ -14,6 +20,7 @@ type BookingSummary = {
     };
     total: number;
     showroom?: string;
+    showId?: string | null;
 };
 
 const formatPrettyDate = (value: string | null | undefined): string => {
@@ -75,6 +82,7 @@ export default function CheckoutPage() {
     const [promoError, setPromoError] = useState<string | null>(null);
     const [paymentOption, setPaymentOption] =
         useState<PaymentOptionId>("saved1");
+    const [placing, setPlacing] = useState(false);
 
     useEffect(() => {
         const stored = localStorage.getItem("booking_summary");
@@ -110,12 +118,108 @@ export default function CheckoutPage() {
         }
     };
 
-    const placeOrder = () => {
-        alert(
-            `Mock order placed!\n\nMovie: ${booking?.movie}\nSeats: ${seats.join(
-                ", "
-            )}\nTotal Charged: $${finalTotal.toFixed(2)}`
-        );
+    const placeOrder = async () => {
+        if (placing) return;
+
+        if (!booking) {
+            alert("Booking details are missing. Please restart your checkout.");
+            return;
+        }
+
+        if (!booking.showId) {
+            alert("Showtime information is missing from your booking.");
+            return;
+        }
+
+        if (!seats.length) {
+            alert("Please select seats before placing the order.");
+            return;
+        }
+
+        const userIdStr = localStorage.getItem("user_id");
+        const userId = userIdStr ? Number(userIdStr) : NaN;
+        if (!userIdStr || Number.isNaN(userId)) {
+            alert("Please log in before completing your purchase.");
+            return;
+        }
+
+        if (!API_BASE) {
+            alert("API base URL is not configured.");
+            return;
+        }
+
+        setPlacing(true);
+
+        try {
+            const showIdNum = Number(booking.showId);
+            if (Number.isNaN(showIdNum)) {
+                throw new Error("Show ID is invalid.");
+            }
+
+            const seatRes = await fetch(
+                `${API_BASE}/seats/show/${encodeURIComponent(showIdNum)}/available`,
+                { cache: "no-store" }
+            );
+
+            if (!seatRes.ok) {
+                const text = await seatRes.text();
+                throw new Error(text || "Unable to load available seats.");
+            }
+
+            type SeatResponse = { seats_id: number; seat_no: number; row_no: string };
+            const available: SeatResponse[] = await seatRes.json();
+            const seatMap = new Map<string, number>();
+
+            for (const seat of available) {
+                const key = `${String(seat.row_no).toUpperCase()}${seat.seat_no}`;
+                seatMap.set(key, seat.seats_id);
+            }
+
+            const seatIds: number[] = [];
+
+            for (const label of seats) {
+                const cleaned = label.trim().toUpperCase();
+                const match = cleaned.match(/^([A-Z]+)(\d+)$/);
+                if (!match) {
+                    throw new Error(`Seat ${label} is not a valid format.`);
+                }
+                const key = `${match[1]}${parseInt(match[2], 10)}`;
+                const seatId = seatMap.get(key);
+                if (!seatId) {
+                    throw new Error(`Seat ${label} is no longer available.`);
+                }
+                seatIds.push(seatId);
+            }
+
+            for (const seatId of seatIds) {
+                const res = await fetch(`${API_BASE}/booking/reserve`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        show_id: showIdNum,
+                        seat_id: seatId,
+                        user_id: userId,
+                    }),
+                });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || "Failed to save booking.");
+                }
+            }
+
+            alert(
+                `Order placed!\n\nMovie: ${booking.movie}\nSeats: ${seats.join(
+                    ", "
+                )}\nTotal Charged: $${finalTotal.toFixed(2)}`
+            );
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error ? err.message : "Failed to place order.";
+            alert(message);
+        } finally {
+            setPlacing(false);
+        }
     };
 
     return (
@@ -418,6 +522,7 @@ export default function CheckoutPage() {
                         {/* PLACE ORDER */}
                         <button
                             onClick={placeOrder}
+                            disabled={placing}
                             style={{
                                 marginTop: "20px",
                                 width: "100%",
@@ -427,10 +532,11 @@ export default function CheckoutPage() {
                                 borderRadius: "8px",
                                 fontWeight: "bold",
                                 fontSize: "16px",
-                                cursor: "pointer",
+                                cursor: placing ? "not-allowed" : "pointer",
+                                opacity: placing ? 0.7 : 1,
                             }}
                         >
-                            Place Order
+                            {placing ? "Placing..." : "Place Order"}
                         </button>
                     </div>
                 </div>

@@ -3,6 +3,12 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
+const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
+
 type BookingSummary = {
     movie: string | null;
     showtime: string | null;
@@ -14,6 +20,7 @@ type BookingSummary = {
     };
     total: number;
     showroom?: string;
+    showId?: string | null;
 };
 
 type SeatLayoutRow = { row: string; max: number; seats: number[] };
@@ -131,6 +138,9 @@ export default function SeatSelectionPage() {
     const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
     const [currentTheaterKey, setCurrentTheaterKey] =
         useState<TheaterKey | null>(null);
+    const [fetchedUnavailable, setFetchedUnavailable] = useState<string[] | null>(
+        null
+    );
 
     useEffect(() => {
         const stored = localStorage.getItem("booking_summary");
@@ -155,6 +165,61 @@ export default function SeatSelectionPage() {
             setCurrentTheaterKey("theater1");
         }
     }, []);
+
+    useEffect(() => {
+        if (!booking?.showId || !currentTheaterKey || !API_BASE) return;
+
+        const showIdNum = Number(booking.showId);
+        if (Number.isNaN(showIdNum)) return;
+
+        const controller = new AbortController();
+
+        type SeatResponse = { seats_id: number; seat_no: number; row_no: string };
+
+        const fetchUnavailable = async () => {
+            try {
+                const res = await fetch(
+                    `${API_BASE}/seats/show/${encodeURIComponent(
+                        showIdNum
+                    )}/available`,
+                    { cache: "no-store", signal: controller.signal }
+                );
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || "Failed to load available seats");
+                }
+
+                const available: SeatResponse[] = await res.json();
+                const availableSet = new Set(
+                    available.map(
+                        (seat) => `${String(seat.row_no).toUpperCase()}${seat.seat_no}`
+                    )
+                );
+
+                const layout = THEATER_LAYOUTS[currentTheaterKey].layout;
+                const taken: string[] = [];
+
+                for (const { row, seats } of layout) {
+                    for (const seatNum of seats) {
+                        const label = `${row}${seatNum}`;
+                        if (!availableSet.has(label)) {
+                            taken.push(label);
+                        }
+                    }
+                }
+
+                setFetchedUnavailable(taken);
+            } catch (err) {
+                console.error("Error loading seats for show", err);
+                setFetchedUnavailable(null);
+            }
+        };
+
+        fetchUnavailable();
+
+        return () => controller.abort();
+    }, [booking?.showId, currentTheaterKey]);
 
     if (!booking || !currentTheaterKey) {
         return (
@@ -198,7 +263,7 @@ export default function SeatSelectionPage() {
 
     const activeTheater = THEATER_LAYOUTS[currentTheaterKey];
     const seatLayout = activeTheater.layout;
-    const unavailableSeats = activeTheater.unavailableSeats;
+    const unavailableSeats = fetchedUnavailable ?? activeTheater.unavailableSeats;
 
     const totalTickets =
         booking

@@ -14,6 +14,7 @@ type BookingSummary = {
     };
     total: number;
     showroom?: string;
+    showId?: string | null;
 };
 
 type ApiPrice = {

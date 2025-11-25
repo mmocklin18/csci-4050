@@ -23,6 +23,7 @@ export default function Booking() {
 
     const movieTitle = params.get("title");
     const showtime = params.get("time"); // may contain date+time
+    const showId = params.get("showId");
     const showroomParam =
         params.get("showroom") || params.get("showroom_id") || null;
 
@@ -590,6 +591,7 @@ export default function Booking() {
                                 },
                                 total: totalPrice,
                                 showroom: showroomParam || null,
+                                showId: showId || null,
                             };
 
                             localStorage.setItem(
