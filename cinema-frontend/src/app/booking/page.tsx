@@ -113,7 +113,7 @@ export default function Booking() {
                     justifyContent: "center",
                 }}
             >
-                {/* Booking summary card */}
+
                 <div
                     style={{
                         backgroundColor: "#f6f6f6",
@@ -423,7 +423,6 @@ export default function Booking() {
                     </div>
                 </div>
 
-                {/* Continue button */}
                 <div
                     style={{
                         display: "flex",

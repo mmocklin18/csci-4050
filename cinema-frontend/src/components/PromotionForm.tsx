@@ -186,7 +186,6 @@ export default function PromotionForm() {
             value={startDate}
             required
             onChange={(e) => setStartDate(e.target.value)}
-            required
             style={{
               padding: "8px",
               borderRadius: "8px",
@@ -223,7 +222,6 @@ export default function PromotionForm() {
             required
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            required
             style={{
               padding: "8px",
               borderRadius: "8px",
