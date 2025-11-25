@@ -1,4 +1,5 @@
 "use client";
+//Able to edit a sspecific movie's details
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
