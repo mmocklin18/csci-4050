@@ -112,7 +112,6 @@ export default function BookingSummaryPage() {
         const storedBooking = localStorage.getItem("booking_summary");
         const storedSeats = localStorage.getItem("selected_seats");
         const storedTheater = localStorage.getItem("selected_theater");
-        const storedTheater = localStorage.getItem("selected_theater");
 
         if (storedBooking) {
             try {
@@ -253,7 +252,6 @@ export default function BookingSummaryPage() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    paddingBottom: "40px",
                     paddingBottom: "40px",
                 }}
             >

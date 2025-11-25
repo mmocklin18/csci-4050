@@ -79,7 +79,6 @@ function formatShowLabel(dateStr: string): string {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return "TBA";
     return date.toLocaleTimeString([], { timeStyle: "short" });
-    return date.toLocaleTimeString([], { timeStyle: "short" });
 }
 
 export default function MovieDetails() {
@@ -92,7 +91,6 @@ export default function MovieDetails() {
     const [showtimes, setShowtimes] = useState<ApiShow[]>([]);
     const [showtimeErr, setShowtimeErr] = useState<string | null>(null);
     const [showtimeLoading, setShowtimeLoading] = useState(true);
-    const todayStr = new Date().toISOString().split("T")[0];
     const todayStr = new Date().toISOString().split("T")[0];
 
     useEffect(() => {
@@ -155,16 +153,6 @@ export default function MovieDetails() {
                 const first = showDateValue(future[0].date_time);
                 if (first) setDate(first);
             }
-            const now = new Date();
-            const future = showtimes.filter((show) => {
-                const dt = new Date(show.date_time);
-                return !Number.isNaN(dt.getTime()) && dt >= now;
-            });
-
-            if (future.length > 0) {
-                const first = showDateValue(future[0].date_time);
-                if (first) setDate(first);
-            }
         }
     }, [showtimes, date]);
 
@@ -178,25 +166,9 @@ export default function MovieDetails() {
     });
 
     const filteredShowtimes = futureShowtimes.filter((show) => {
-
-    const now = new Date();
-
-    const futureShowtimes = showtimes.filter((show) => {
-        const dt = new Date(show.date_time);
-        if (Number.isNaN(dt.getTime())) return false;
-        return dt >= now;
-    });
-
-    const filteredShowtimes = futureShowtimes.filter((show) => {
         if (!date) return true;
         return showDateValue(show.date_time) === date;
     });
-
-    const showtimesFiltered = filteredShowtimes;
-    const noMatchesForDate = Boolean(
-        date && filteredShowtimes.length === 0 && futureShowtimes.length > 0
-    );
-
 
     const showtimesFiltered = filteredShowtimes;
     const noMatchesForDate = Boolean(
@@ -248,7 +220,6 @@ export default function MovieDetails() {
                             <input
                                 type="date"
                                 value={date}
-                                min={todayStr}
                                 min={todayStr}
                                 onChange={(e) => setDate(e.target.value)}
                                 onFocus={() => setDateFocused(true)}
