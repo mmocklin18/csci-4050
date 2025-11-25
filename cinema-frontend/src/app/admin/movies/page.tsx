@@ -54,10 +54,13 @@ export default function ManageMovies() {
       if (res.ok) {
         setMovies((prev) => prev.filter((m) => m.movie_id !== id));
       } else {
-        alert("Failed to delete movie");
+        const body = await res.json().catch(() => null);
+        alert(body?.detail || "Failed to delete movie");
       }
     } catch (err) {
       console.error("Error deleting movie:", err);
+      const message = err instanceof Error ? err.message : "Failed to delete movie";
+      alert(message);
     }
   };
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from typing import List
 
@@ -34,7 +35,14 @@ async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_session)):
     if not movie:
         raise HTTPException(404, "Movie not found")
     await db.delete(movie)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Cannot delete a movie that has scheduled shows or existing bookings",
+        )
     return {"message": f"Movie {movie_id} deleted successfully"}
 
 
@@ -50,4 +58,3 @@ async def create_movie(movie: MovieCreate, db: AsyncSession = Depends(get_sessio
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error adding movie: {e}")
-
