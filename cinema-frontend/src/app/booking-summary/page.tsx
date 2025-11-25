@@ -283,16 +283,9 @@ export default function BookingSummaryPage() {
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
                         <strong>Date:</strong>{" "}
                         {formattedDate || "Not specified"}
-                        {formattedShowtime || "Not specified"}
-                    </div>
-
-                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Date:</strong>{" "}
-                        {formattedDate || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px" }}>
-                        <strong>Showroom:</strong> {showroomLabel}
                         <strong>Showroom:</strong> {showroomLabel}
                     </div>
                 </div>

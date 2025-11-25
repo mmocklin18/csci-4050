@@ -49,7 +49,8 @@ export default function ShowtimeForm() {
       const payload = {
         movieid: parseInt(movieId, 10),
         showroom_id: parseInt(showroomId, 10),
-        date_time: new Date(showtime).toISOString(),
+        // Keep the local time as entered; avoid converting to UTC which shifts the hour
+        date_time: `${showtime}:00`,
         duration: parseInt(duration || "120", 10),
       };
 
