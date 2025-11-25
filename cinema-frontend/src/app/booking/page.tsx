@@ -23,77 +23,8 @@ export default function Booking() {
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
     const movieTitle = params.get("title");
-    const showtime = params.get("time");       // may contain date+time
-    const showroomParam =
-        params.get("showroom") || params.get("showroom_id") || null;
+    const showtime = params.get("time");
     const [selectedDate, setSelectedDate] = useState("");
-
-    // helpers to cleanly separate date and time
-    const getDateOnly = (value: string | null) => {
-        if (!value) return "";
-        const v = value.trim();
-        if (v.includes("T")) return v.split("T")[0];
-        if (v.includes(" ")) return v.split(" ")[0];
-        return v;
-    };
-
-    const getTimeOnly = (value: string | null) => {
-        if (!value) return "";
-        // try to parse as Date first
-        const d = new Date(value);
-        if (!Number.isNaN(d.getTime())) {
-            return d.toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-            });
-        }
-        // fallback: if "YYYY-MM-DD HH:MM:SS"
-        if (value.includes(" ")) {
-            const parts = value.split(" ");
-            return parts[1] || value;
-        }
-        return value;
-    };
-
-    const formatPrettyDate = (value: string | null | undefined): string => {
-        if (!value) return "";
-
-        let datePart = value.trim();
-
-        if (datePart.includes("T")) {
-            datePart = datePart.split("T")[0];
-        } else if (datePart.includes(" ")) {
-            datePart = datePart.split(" ")[0];
-        }
-
-        const parts = datePart.split("-");
-        if (parts.length === 3) {
-            const [y, m, d] = parts.map(Number);
-            if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
-                const jsDate = new Date(y, m - 1, d);
-                return jsDate.toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                });
-            }
-        }
-
-        const jsDate = new Date(value);
-        if (!Number.isNaN(jsDate.getTime())) {
-            return jsDate.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            });
-        }
-
-        return value;
-    };
-
-
-    const formattedShowtime = getTimeOnly(showtime);
-    const formattedDate = getDateOnly(selectedDate || showtime || null);
 
     useEffect(() => {
 
@@ -203,18 +134,11 @@ export default function Booking() {
                     </div>
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Showtime:</strong>{" "}
-                        {formattedShowtime || "Not specified"}
+                        <strong>Showtime:</strong> {showtime || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px" }}>
-                        <strong>Date:</strong>{" "}
-                        {formatPrettyDate(selectedDate) || "Not specified"}
-                    </div>
-
-                    <div style={{ fontSize: "16px" }}>
-                        <strong>Showroom:</strong>{" "}
-                        {showroomParam || "Not specified"}
+                        <strong>Date:</strong> {selectedDate || "Not specified"}
                     </div>
                 </div>
 
@@ -528,14 +452,13 @@ export default function Booking() {
                             const summary = {
                                 movie: movieTitle || null,
                                 showtime: showtime || null,
-                                date: formattedDate || null,
+                                date: selectedDate || null,
                                 tickets: {
                                     adults: adultTickets,
                                     children: childTickets,
                                     seniors: seniorTickets,
                                 },
                                 total: totalPrice,
-                                showroom: showroomParam || null,
                             };
 
                             localStorage.setItem(
