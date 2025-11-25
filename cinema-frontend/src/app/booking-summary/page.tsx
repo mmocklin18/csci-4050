@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
+import AuthForm from "@/components/AuthForm";
 
 type BookingSummary = {
     movie: string | null;
@@ -17,8 +18,8 @@ type BookingSummary = {
 };
 
 type ApiPrice = {
-    type: string;   // "adult" | "child" | "senior"
-    amount: number; // e.g. 10.00
+    type: string;
+    amount: number;
 };
 
 type Prices = {
@@ -100,8 +101,8 @@ export default function BookingSummaryPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
     const [selectedTheater, setSelectedTheater] = useState<string | null>(null);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
-    // prices from backend
     const [prices, setPrices] = useState<Prices | null>(null);
     const [pricesLoading, setPricesLoading] = useState(true);
     const [pricesError, setPricesError] = useState<string | null>(null);
@@ -132,7 +133,6 @@ export default function BookingSummaryPage() {
         }
     }, []);
 
-    // Fetch prices from backend (same as Booking page)
     useEffect(() => {
         let alive = true;
 
@@ -180,7 +180,6 @@ export default function BookingSummaryPage() {
         };
     }, []);
 
-    // Use DB prices (fallback to 0 while loading / on error)
     const ADULT_PRICE = prices?.adult ?? 0;
     const CHILD_PRICE = prices?.child ?? 0;
     const SENIOR_PRICE = prices?.senior ?? 0;
@@ -195,12 +194,25 @@ export default function BookingSummaryPage() {
     const totalTickets = adults + children + seniors;
 
     const computedTotal = adultSubtotal + childSubtotal + seniorSubtotal;
-    // booking.total was computed on the Booking page using DB prices
     const finalTotal = booking?.total ?? computedTotal;
 
     const formattedDate = formatPrettyDate(booking?.date);
     const formattedShowtime = formatShowtime(booking?.showtime);
     const showroomLabel = getShowroomLabel(booking?.showroom);
+
+    const handleContinueClick = () => {
+        const token =
+            localStorage.getItem("access_token") ||
+            localStorage.getItem("token");
+
+        if (token) {
+            window.location.href = "/checkout";
+        } else {
+            setShowAuthModal(true);
+        }
+    };
+
+    const closeAuthModal = () => setShowAuthModal(false);
 
     return (
         <div
@@ -238,7 +250,7 @@ export default function BookingSummaryPage() {
                     paddingBottom: "40px",
                 }}
             >
-                {/* Movie info card */}
+
                 <div
                     style={{
                         backgroundColor: "#f6f6f6",
@@ -273,7 +285,6 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
-                {/* Optional: price loading / error messages */}
                 {pricesLoading && (
                     <p style={{ color: "#555", marginBottom: "8px" }}>
                         Loading ticket prices…
@@ -285,7 +296,6 @@ export default function BookingSummaryPage() {
                     </p>
                 )}
 
-                {/* Ticket breakdown + total */}
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -389,7 +399,7 @@ export default function BookingSummaryPage() {
                     </div>
                 </div>
 
-                {/* Seats list */}
+
                 <div
                     style={{
                         backgroundColor: "#f9f9f9",
@@ -411,7 +421,7 @@ export default function BookingSummaryPage() {
                             color: "#111",
                         }}
                     >
-                        Selected Seat(s)
+                        Selected Seats
                     </h2>
 
                     {seats.length === 0 ? (
@@ -438,9 +448,7 @@ export default function BookingSummaryPage() {
                 </div>
 
                 <button
-                    onClick={() => {
-                        window.location.href = "/checkout";
-                    }}
+                    onClick={handleContinueClick}
                     style={{
                         padding: "10px 24px",
                         backgroundColor: "#000000ff",
@@ -456,6 +464,50 @@ export default function BookingSummaryPage() {
                     Continue to Checkout
                 </button>
             </div>
+
+            {showAuthModal && (
+                <div
+                    onClick={closeAuthModal}
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.45)",
+                        zIndex: 2000,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                    }}
+                >
+
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "12px",
+                        }}
+                    >
+
+                        <div
+                            style={{
+                                backgroundColor: "#fff",
+                                padding: "10px 24px",
+                                borderRadius: "12px",
+                                boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)",
+                                fontWeight: "600",
+                                fontSize: "14px",
+                                textAlign: "center",
+                                color: "#FF0000"
+                            }}
+                        >
+                            Please log in to continue
+                        </div>
+
+                        <AuthForm />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

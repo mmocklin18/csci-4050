@@ -19,7 +19,6 @@ type BookingSummary = {
 type SeatLayoutRow = { row: string; max: number; seats: number[] };
 type TheaterKey = "theater1" | "theater2" | "theater3";
 
-//helpers to format date/time like on Booking page
 const getDateOnly = (value: string | null | undefined): string => {
     if (!value) return "";
     const v = value.trim();
@@ -139,7 +138,7 @@ export default function SeatSelectionPage() {
                 const parsed: BookingSummary = JSON.parse(stored);
                 setBooking(parsed);
 
-                let key: TheaterKey = "theater1"; // fallback
+                let key: TheaterKey = "theater1";
                 if (parsed.showroom) {
                     const fromShowroom = showroomToKey[parsed.showroom];
                     if (fromShowroom) {
@@ -151,7 +150,6 @@ export default function SeatSelectionPage() {
                 console.error("Error parsing booking_summary", err);
             }
         } else {
-            // no booking summary, still avoid null
             setCurrentTheaterKey("theater1");
         }
     }, []);
@@ -235,7 +233,6 @@ export default function SeatSelectionPage() {
         window.location.href = "/booking-summary";
     };
 
-    // formatted date/time for display
     const formattedShowtime = getTimeOnly(booking?.showtime);
     const formattedDate = getDateOnly(booking?.date);
 
@@ -338,7 +335,6 @@ export default function SeatSelectionPage() {
                                 marginBottom: "6px",
                             }}
                         >
-                            {/* Left row label */}
                             <div
                                 style={{
                                     width: "20px",
@@ -351,7 +347,7 @@ export default function SeatSelectionPage() {
                                 {row}
                             </div>
 
-                            {/* Seats */}
+
                             <div style={{ display: "flex", gap: "4px" }}>
                                 {Array.from({ length: max }, (_, i) => {
                                     const seatNumber = i + 1;
@@ -382,7 +378,6 @@ export default function SeatSelectionPage() {
                                     let displayText: string | number =
                                         seatNumber;
 
-                                    // Unavailable -> red X
                                     if (isUnavailable) {
                                         bg = "red";
                                         textColor = "white";
@@ -425,7 +420,7 @@ export default function SeatSelectionPage() {
                                 })}
                             </div>
 
-                            {/* Right row label */}
+
                             <div
                                 style={{
                                     width: "20px",
@@ -440,7 +435,6 @@ export default function SeatSelectionPage() {
                         </div>
                     ))}
 
-                    {/* Stage bar */}
                     <div
                         style={{
                             marginTop: "18px",
@@ -453,12 +447,11 @@ export default function SeatSelectionPage() {
                             fontSize: "13px",
                         }}
                     >
-                        STAGE
+                        SCREEN
                     </div>
                 </div>
             </div>
 
-            {/* Selection summary + button */}
             <div
                 style={{
                     display: "flex",

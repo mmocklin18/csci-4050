@@ -13,7 +13,7 @@ type ApiMovie = {
     description: string;
     rating: "G" | "PG" | "PG-13" | "R";
     runtime: number;
-    release_date: string;     // ISO
+    release_date: string;
     available: boolean;
     poster: string;
     trailer: string | null;
