@@ -11,7 +11,7 @@ from app.core.security import get_password_hash, verify_password
 from app.models.address import Address
 from app.models.user import User
 from app.services.email_notifications import queue_profile_update_email
-from app.schemas.user import UserRead, UserUpdate, UserStateUpdate, UserType, StateType
+from app.schemas.user import UserRead, UserUpdate, UserRoleUpdate, UserType
 
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -38,26 +38,6 @@ async def get_all_users(
     users = result.scalars().all()
     return users
 
-@router.get("/{user_id}", response_model=UserRead)
-async def get_user_by_id(
-    user_id: int,
-    db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    result = await db.execute(
-        select(User)
-        .options(selectinload(User.address))
-        .where(User.user_id == user_id)  
-    )
-    user = result.scalars().first()  
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
 
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
@@ -81,14 +61,14 @@ async def delete_user(
     await db.commit()
 
 
-@router.patch("/{user_id}/state", response_model=UserRead)
-async def update_user_state(
+@router.patch("/{user_id}/role", response_model=UserRead)
+async def update_user_role(
     user_id: int,
-    payload: UserStateUpdate,
+    payload: UserRoleUpdate,
     db: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """Admin-only: update another user's state."""
+    """Admin-only: update another user's role."""
     if current_user.role != UserType.admin:
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -99,9 +79,7 @@ async def update_user_state(
     if user.user_id == current_user.user_id:
         raise HTTPException(status_code=400, detail="Cannot change your own role")
 
-    # assign enum value if your SQLAlchemy column is a string
-    user.state = payload.state
-
+    user.role = payload.role
     await db.commit()
     await db.refresh(user)
     return user

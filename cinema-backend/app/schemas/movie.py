@@ -36,15 +36,3 @@ class MovieRead(MovieBase):
     
     model_config = ConfigDict(from_attributes=True)  # replaces orm_mode
 
-
-class MovieUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    rating: Optional[str] = None
-    runtime: Optional[int] = None
-    release_date: Optional[datetime] = None
-    available: Optional[bool] = None
-    poster: Optional[str] = None
-    trailer: Optional[str] = None
-    main_genre: Optional[str] = None
-

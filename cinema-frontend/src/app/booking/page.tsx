@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
@@ -20,6 +20,7 @@ export default function Booking() {
     const [adultTickets, setAdultTickets] = useState(0);
     const [childTickets, setChildTickets] = useState(0);
     const [seniorTickets, setSeniorTickets] = useState(0);
+
     const movieTitle = params.get("title");
     const showtime = params.get("time"); // may contain date+time
     const showId = params.get("showId");
@@ -27,35 +28,9 @@ export default function Booking() {
         params.get("showroom") || params.get("showroom_id") || null;
 
     const [selectedDate, setSelectedDate] = useState("");
-
-    useEffect(() => {
-
-        const storedDate = localStorage.getItem("selectedDate");
-        if (storedDate) {
-            setSelectedDate(storedDate);
-            localStorage.setItem("selectedDate", storedDate);
-        }
-
-
-        const a = localStorage.getItem("tickets_adult");
-        const c = localStorage.getItem("tickets_child");
-        const s = localStorage.getItem("tickets_senior");
-        if (a !== null) setAdultTickets(parseInt(a, 10) || 0);
-        if (c !== null) setChildTickets(parseInt(c, 10) || 0);
-        if (s !== null) setSeniorTickets(parseInt(s, 10) || 0);
-    }, [derivedDate]);
-
-
-    useEffect(() => {
-        localStorage.setItem("tickets_adult", String(adultTickets));
-    }, [adultTickets]);
-    useEffect(() => {
-        localStorage.setItem("tickets_child", String(childTickets));
-    }, [childTickets]);
-    useEffect(() => {
-        localStorage.setItem("tickets_senior", String(seniorTickets));
-    }, [seniorTickets]);
-
+    const [prices, setPrices] = useState<Prices | null>(null);
+    const [pricesLoading, setPricesLoading] = useState(true);
+    const [pricesError, setPricesError] = useState<string | null>(null);
 
     const increaseAdult = () => setAdultTickets((t) => t + 1);
     const decreaseAdult = () => setAdultTickets((t) => (t > 0 ? t - 1 : 0));
@@ -278,17 +253,37 @@ export default function Booking() {
                     }}
                 >
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Movie:</strong> {movieTitle || "Not specified"}
+                        <strong>Movie:</strong>{" "}
+                        {movieTitle || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Showtime:</strong> {showtime || "Not specified"}
+                        <strong>Showtime:</strong>{" "}
+                        {formattedShowtime || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px" }}>
-                        <strong>Date:</strong> {selectedDate || "Not specified"}
+                        <strong>Date:</strong>{" "}
+                        {formatPrettyDate(selectedDate) || "Not specified"}
+                    </div>
+
+                    <div style={{ fontSize: "16px" }}>
+                        <strong>Showroom:</strong>{" "}
+                        {showroomParam || "Not specified"}
                     </div>
                 </div>
+
+                {/* Optional: show price loading / error */}
+                {pricesLoading && (
+                    <p style={{ color: "#555", marginBottom: "8px" }}>
+                        Loading ticket prices…
+                    </p>
+                )}
+                {pricesError && (
+                    <p style={{ color: "#b91c1c", marginBottom: "8px" }}>
+                        Could not load prices. Using $0.00 defaults.
+                    </p>
+                )}
 
                 {/* Ticket counters */}
                 <div
@@ -331,15 +326,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Adults</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${ADULT_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseAdult}
                                 style={{
@@ -408,15 +399,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Children</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${CHILD_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseChild}
                                 style={{
@@ -485,15 +472,11 @@ export default function Booking() {
                     >
                         <div style={{ minWidth: "140px", textAlign: "left" }}>
                             <strong>Seniors</strong>
-                            <div
-                                style={{ fontSize: "12px", color: "#555" }}
-                            >
+                            <div style={{ fontSize: "12px", color: "#555" }}>
                                 ${SENIOR_PRICE.toFixed(2)} each
                             </div>
                         </div>
-                        <div
-                            style={{ display: "flex", alignItems: "center" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "center" }}>
                             <button
                                 onClick={decreaseSenior}
                                 style={{
@@ -597,13 +580,12 @@ export default function Booking() {
                             display: "flex",
                         }}
                         onClick={() => {
-                                const summary = {
-                                    movie: movieTitle || null,
-                                    showtime: showtimeIso || null,
-                                    showId: showId || null,
-                                    date: selectedDate || null,
-                                    tickets: {
-                                        adults: adultTickets,
+                            const summary = {
+                                movie: movieTitle || null,
+                                showtime: showtime || null,
+                                date: formattedDate || null,
+                                tickets: {
+                                    adults: adultTickets,
                                     children: childTickets,
                                     seniors: seniorTickets,
                                 },

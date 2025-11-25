@@ -100,7 +100,7 @@ const getShowroomLabel = (showroomId?: string): string => {
 export default function BookingSummaryPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
-
+    const [selectedTheater, setSelectedTheater] = useState<string | null>(null);
 
     // prices from backend
     const [prices, setPrices] = useState<Prices | null>(null);
@@ -110,6 +110,7 @@ export default function BookingSummaryPage() {
     useEffect(() => {
         const storedBooking = localStorage.getItem("booking_summary");
         const storedSeats = localStorage.getItem("selected_seats");
+        const storedTheater = localStorage.getItem("selected_theater");
 
         if (storedBooking) {
             try {
@@ -125,6 +126,10 @@ export default function BookingSummaryPage() {
             } catch {
                 // ignore parse errors
             }
+        }
+
+        if (storedTheater) {
+            setSelectedTheater(storedTheater);
         }
     }, []);
 
@@ -190,10 +195,13 @@ export default function BookingSummaryPage() {
     const seniorSubtotal = seniors * SENIOR_PRICE;
     const totalTickets = adults + children + seniors;
 
-
     const computedTotal = adultSubtotal + childSubtotal + seniorSubtotal;
     // booking.total was computed on the Booking page using DB prices
     const finalTotal = booking?.total ?? computedTotal;
+
+    const formattedDate = formatPrettyDate(booking?.date);
+    const formattedShowtime = formatShowtime(booking?.showtime);
+    const showroomLabel = getShowroomLabel(booking?.showroom);
 
     return (
         <div
@@ -228,7 +236,7 @@ export default function BookingSummaryPage() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    paddingBottom: "32px",
+                    paddingBottom: "40px",
                 }}
             >
                 {/* Movie info card */}
@@ -253,12 +261,16 @@ export default function BookingSummaryPage() {
 
                     <div style={{ fontSize: "16px", marginBottom: "6px" }}>
                         <strong>Showtime:</strong>{" "}
-                        {booking?.showtime ?? "Not specified"}
+                        {formattedShowtime || "Not specified"}
+                    </div>
+
+                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
+                        <strong>Date:</strong>{" "}
+                        {formattedDate || "Not specified"}
                     </div>
 
                     <div style={{ fontSize: "16px" }}>
-                        <strong>Date:</strong>{" "}
-                        {booking?.date ?? "Not specified"}
+                        <strong>Showroom:</strong> {showroomLabel}
                     </div>
                 </div>
 
@@ -425,6 +437,25 @@ export default function BookingSummaryPage() {
                         </p>
                     )}
                 </div>
+
+                <button
+                    onClick={() => {
+                        window.location.href = "/checkout";
+                    }}
+                    style={{
+                        padding: "10px 24px",
+                        backgroundColor: "#000000ff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        marginBottom: "40px",
+                    }}
+                >
+                    Continue to Checkout
+                </button>
             </div>
         </div>
     );
