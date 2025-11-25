@@ -1,50 +1,71 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
-export default function PromotionForm() {
-  const [code, setCode] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+interface User {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  state: string; // active, inactive, suspended
+}
+
+export default function UserDetails() {
   const router = useRouter();
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.API_BASE ||
-    process.env.API_BASE_URL ||
-    "http://localhost:8000";
+  const params = useParams();
+  const id = params?.id;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [user, setUser] = useState<User | null>(null);
+  const [stateValue, setStateValue] = useState("active");
 
-    if (!startDate || !endDate) {
-      alert("Please provide both a start date and an end date.");
-      return;
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const token = localStorage.getItem("auth_token");
+
+        const res = await fetch(`http://127.0.0.1:8000/user/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+        console.log("USER FROM BACKEND:", data);
+        setUser(data);
+        setStateValue(data.state);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
-    try {
-      const payload: Record<string, unknown> = {
-        code: code.trim(),
-        discount: parseFloat(discount),
-        start_date: startDate,
-        end_date: endDate,
-      };
+    fetchUser();
+  }, [id]);
 
-      const res = await fetch(`${API_BASE}/admin/promotions/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+  async function handleSave() {
+    try {
+      const token = localStorage.getItem("auth_token");
+
+      const res = await fetch(`http://127.0.0.1:8000/user/${id}/state`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ state: stateValue }),
       });
 
-      if (!res.ok) throw new Error("Failed to add promotion");
-      alert("Promotion added successfully!");
-      router.push("/admin/promotions");
-    } catch (err) {
-      console.error(err);
-      alert("Error adding promotion.");
+      if (res.ok) {
+        alert("User state updated!");
+        router.push("/admin/users");
+      } else {
+        alert("Failed to update");
+      }
+    } catch {
+      alert("Error updating user");
     }
-  };
+  }
+
+  if (!user) return <p style={{ color: "black" }}>Loading...</p>;
 
   return (
     <div
@@ -55,11 +76,11 @@ export default function PromotionForm() {
         left: 0,
         right: 0,
         bottom: 0,
-        margin: 0,
       }}
     >
       <Navbar />
 
+      {/* TITLE */}
       <h1
         style={{
           marginTop: "30px",
@@ -75,11 +96,11 @@ export default function PromotionForm() {
           flexDirection: "column",
         }}
       >
-        Add Promotion
+        Edit User
       </h1>
 
-      <form
-        onSubmit={handleSubmit}
+      {/* FORM */}
+      <div
         style={{
           display: "flex",
           flexDirection: "column",
@@ -88,7 +109,7 @@ export default function PromotionForm() {
           marginTop: "16px",
         }}
       >
-        {/* Promo Code */}
+        {/* NAME */}
         <div
           style={{
             display: "flex",
@@ -105,27 +126,26 @@ export default function PromotionForm() {
               fontSize: "15px",
             }}
           >
-            Promo Code:
+            Name:
           </label>
           <input
             type="text"
-            placeholder="Enter promo code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            required
+            value={`${user.first_name} ${user.last_name}`}
+            disabled
             style={{
               padding: "8px",
               borderRadius: "8px",
               border: "1px solid #ccc",
-              backgroundColor: "#f9f9f9",
+              backgroundColor: "#eaeaea",
               color: "black",
               width: "220px",
               textAlign: "center",
+              cursor: "not-allowed",
             }}
           />
         </div>
 
-        {/* Discount */}
+        {/* EMAIL */}
         <div
           style={{
             display: "flex",
@@ -142,27 +162,26 @@ export default function PromotionForm() {
               fontSize: "15px",
             }}
           >
-            Discount (%):
+            Email:
           </label>
           <input
-            type="number"
-            placeholder="e.g. 15"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-            required
+            type="text"
+            value={user.email}
+            disabled
             style={{
               padding: "8px",
               borderRadius: "8px",
               border: "1px solid #ccc",
-              backgroundColor: "#f9f9f9",
+              backgroundColor: "#eaeaea",
               color: "black",
               width: "220px",
               textAlign: "center",
+              cursor: "not-allowed",
             }}
           />
         </div>
 
-        {/* Start Date */}
+        {/* STATUS DROPDOWN */}
         <div
           style={{
             display: "flex",
@@ -179,14 +198,12 @@ export default function PromotionForm() {
               fontSize: "15px",
             }}
           >
-            Start Date:
+            Status:
           </label>
-          <input
-            type="date"
-            value={startDate}
-            required
-            onChange={(e) => setStartDate(e.target.value)}
-            required
+
+          <select
+            value={stateValue}
+            onChange={(e) => setStateValue(e.target.value)}
             style={{
               padding: "8px",
               borderRadius: "8px",
@@ -195,48 +212,21 @@ export default function PromotionForm() {
               color: "black",
               width: "220px",
               textAlign: "center",
-            }}
-          />
-        </div>
-
-        {/* End Date */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            marginBottom: "10px",
-            alignItems: "center",
-          }}
-        >
-          <label
-            style={{
-              fontWeight: "bold",
-              color: "black",
-              marginBottom: "5px",
-              fontSize: "15px",
             }}
           >
-            End Date:
-          </label>
-          <input
-            type="date"
-            required
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-            style={{
-              padding: "8px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              backgroundColor: "#f9f9f9",
-              color: "black",
-              width: "220px",
-              textAlign: "center",
-            }}
-          />
+            <option value="Active" style={{ color: "black" }}>
+              Active
+            </option>
+            <option value="Inactive" style={{ color: "black" }}>
+              Inactive
+            </option>
+            <option value="Suspended" style={{ color: "black" }}>
+              Suspended
+            </option>
+          </select>
         </div>
 
-        {/* Submit Button */}
+        {/* SAVE BUTTON */}
         <div
           style={{
             display: "flex",
@@ -246,7 +236,7 @@ export default function PromotionForm() {
           }}
         >
           <button
-            type="submit"
+            onClick={handleSave}
             style={{
               padding: "10px 20px",
               backgroundColor: "#000000ff",
@@ -258,10 +248,10 @@ export default function PromotionForm() {
               cursor: "pointer",
             }}
           >
-            Add Promotion
+            Save
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

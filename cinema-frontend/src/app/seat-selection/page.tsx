@@ -23,115 +23,21 @@ type BookingSummary = {
     showId?: string | null;
 };
 
-type SeatLayoutRow = { row: string; max: number; seats: number[] };
-type TheaterKey = "theater1" | "theater2" | "theater3";
+const seatLayout: { row: string; max: number; seats: number[] }[] = [
+    // Back rows (top)
+    { row: "H", max: 18, seats: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14] },
+    { row: "G", max: 18, seats: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] },
+    { row: "F", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
+    { row: "E", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
+    { row: "D", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
+    // Front rows with middle gap
+    { row: "C", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
+    { row: "B", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
+    { row: "A", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
+];
 
-//helpers to format date/time like on Booking page
-const getDateOnly = (value: string | null | undefined): string => {
-    if (!value) return "";
-    const v = value.trim();
-    if (v.includes("T")) return v.split("T")[0];
-    if (v.includes(" ")) return v.split(" ")[0];
-    return v;
-};
-
-const getTimeOnly = (value: string | null | undefined): string => {
-    if (!value) return "";
-    const d = new Date(value);
-    if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    }
-    if (value.includes(" ")) {
-        const parts = value.split(" ");
-        return parts[1] || value;
-    }
-    return value;
-};
-
-const formatPrettyDate = (value: string | null | undefined): string => {
-    if (!value) return "";
-
-    let datePart = value.trim();
-
-    if (datePart.includes("T")) {
-        datePart = datePart.split("T")[0];
-    } else if (datePart.includes(" ")) {
-        datePart = datePart.split(" ")[0];
-    }
-
-    const parts = datePart.split("-");
-    if (parts.length === 3) {
-        const [y, m, d] = parts.map(Number);
-        if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
-            const jsDate = new Date(y, m - 1, d);
-            return jsDate.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            });
-        }
-    }
-
-    const jsDate = new Date(value);
-    if (!Number.isNaN(jsDate.getTime())) {
-        return jsDate.toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    }
-
-    return value;
-};
-
-
-const THEATER_LAYOUTS: Record<
-    TheaterKey,
-    { layout: SeatLayoutRow[]; unavailableSeats: string[] }
-> = {
-    theater1: {
-        layout: [
-            { row: "H", max: 18, seats: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14] },
-            { row: "G", max: 18, seats: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] },
-            { row: "F", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
-            { row: "E", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
-            { row: "D", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] },
-            { row: "C", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
-            { row: "B", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
-            { row: "A", max: 18, seats: [1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18] },
-        ],
-        unavailableSeats: ["E7", "C5", "B14"],
-    },
-    theater2: {
-        layout: [
-            { row: "F", max: 12, seats: [3, 4, 5, 6, 7, 8, 9, 10] },
-            { row: "E", max: 12, seats: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
-            { row: "D", max: 12, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-            { row: "C", max: 12, seats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-            { row: "B", max: 12, seats: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
-            { row: "A", max: 12, seats: [3, 4, 5, 6, 7, 8, 9, 10] },
-        ],
-        unavailableSeats: ["D6", "D7", "C3", "A5"],
-    },
-    theater3: {
-        layout: [
-            { row: "D", max: 10, seats: [2, 3, 4, 5, 6, 7, 8, 9] },
-            { row: "C", max: 10, seats: [2, 3, 4, 5, 6, 7, 8, 9] },
-            { row: "B", max: 10, seats: [2, 3, 4, 5, 6, 7, 8, 9] },
-            { row: "A", max: 10, seats: [3, 4, 5, 6, 7, 8] },
-        ],
-        unavailableSeats: ["C4", "B7"],
-    },
-};
-
-const showroomToKey: Record<string, TheaterKey> = {
-    "1": "theater1",
-    "2": "theater2",
-    "3": "theater3",
-};
+// Example unavailable seats (replace with API data later)
+const unavailableSeats: string[] = ["E7", "C5", "B14"];
 
 export default function SeatSelectionPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
@@ -146,23 +52,10 @@ export default function SeatSelectionPage() {
         const stored = localStorage.getItem("booking_summary");
         if (stored) {
             try {
-                const parsed: BookingSummary = JSON.parse(stored);
-                setBooking(parsed);
-
-                let key: TheaterKey = "theater1"; // fallback
-                if (parsed.showroom) {
-                    const fromShowroom = showroomToKey[parsed.showroom];
-                    if (fromShowroom) {
-                        key = fromShowroom;
-                    }
-                }
-                setCurrentTheaterKey(key);
-            } catch (err) {
-                console.error("Error parsing booking_summary", err);
+                setBooking(JSON.parse(stored));
+            } catch {
+                // ignore parse errors
             }
-        } else {
-            // no booking summary, still avoid null
-            setCurrentTheaterKey("theater1");
         }
     }, []);
 
@@ -300,10 +193,6 @@ export default function SeatSelectionPage() {
         window.location.href = "/booking-summary";
     };
 
-    // formatted date/time for display
-    const formattedShowtime = getTimeOnly(booking?.showtime);
-    const formattedDate = getDateOnly(booking?.date);
-
     return (
         <div
             style={{
@@ -325,59 +214,49 @@ export default function SeatSelectionPage() {
                     fontSize: "24px",
                     fontWeight: "bold",
                     color: "black",
-                    marginBottom: "10px",
+                    marginBottom: "16px",
                     textAlign: "center",
                 }}
             >
                 Seat Selection
             </h1>
 
-            {/* Booking info + showroom */}
+            {/* Booking info summary */}
             <div
                 style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    marginBottom: "10px",
+                    backgroundColor: "#f6f6f6",
+                    padding: "16px 22px",
+                    borderRadius: "12px",
+                    border: "2px solid #000",
+                    width: "90%",
+                    maxWidth: "350px",
+                    margin: "0 auto 20px",
+                    boxShadow: "0 6px 18px rgba(0, 0, 0, 0.18)",
+                    textAlign: "center",
+                    lineHeight: "1.5",
                 }}
             >
-                <div
-                    style={{
-                        backgroundColor: "#f6f6f6",
-                        padding: "18px 24px",
-                        borderRadius: "14px",
-                        border: "2px solid #000",
-                        width: "90%",
-                        maxWidth: "380px",
-                        margin: "0 auto 8px",
-                        boxShadow: "0 6px 18px rgba(0, 0, 0, 0.18)",
-                        textAlign: "center",
-                        lineHeight: "1.6",
-                    }}
-                >
-                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Movie:</strong>{" "}
-                        {booking?.movie ?? "Not specified"}
-                    </div>
+                <p style={{ margin: "0 0 6px", fontSize: "15px", color: "#222" }}>
+                    <strong>Movie:</strong> {booking?.movie || "Not specified"}
+                </p>
 
-                    <div style={{ fontSize: "16px", marginBottom: "6px" }}>
-                        <strong>Showtime:</strong>{" "}
-                        {formattedShowtime || "Not specified"}
-                    </div>
+                <p style={{ margin: "0 0 6px", fontSize: "15px", color: "#222" }}>
+                    <strong>Showtime:</strong> {booking?.showtime || "Not specified"}
+                </p>
 
-                    <div style={{ fontSize: "16px" }}>
-                        <strong>Date:</strong>{" "}
-                        {formatPrettyDate(booking?.date) || "Not specified"}
-                    </div>
+                <p style={{ margin: "0 0 10px", fontSize: "15px", color: "#222" }}>
+                    <strong>Date:</strong> {booking?.date || "Not specified"}
+                </p>
 
-                    <div style={{ fontSize: "16px" }}>
-                        <strong>Showroom:</strong>{" "}
-                        {booking?.showroom ?? "Not specified"}
-                    </div>
-                </div>
+                {typeof totalTickets !== "undefined" && (
+                    <p style={{ margin: 0, fontSize: "15px", color: "#222", textAlign: "center" }}>
+                        <strong>Total Tickets:</strong> {totalTickets}
+                    </p>
+                )}
             </div>
 
-            {/* Seat map */}
+
+            {/* Seat map container */}
             <div
                 style={{
                     display: "flex",
@@ -394,6 +273,7 @@ export default function SeatSelectionPage() {
                         boxShadow: "0 4px 10px rgba(0,0,0,0.4)",
                     }}
                 >
+                    {/* Rows */}
                     {seatLayout.map(({ row, max, seats }) => (
                         <div
                             key={row}
@@ -417,7 +297,12 @@ export default function SeatSelectionPage() {
                             </div>
 
                             {/* Seats */}
-                            <div style={{ display: "flex", gap: "4px" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: "4px",
+                                }}
+                            >
                                 {Array.from({ length: max }, (_, i) => {
                                     const seatNumber = i + 1;
                                     const hasSeat = seats.includes(seatNumber);
@@ -437,17 +322,13 @@ export default function SeatSelectionPage() {
                                     }
 
                                     const seatId = `${row}${seatNumber}`;
-                                    const isUnavailable =
-                                        unavailableSeats.includes(seatId);
-                                    const isSelected =
-                                        selectedSeats.includes(seatId);
+                                    const isUnavailable = unavailableSeats.includes(seatId);
+                                    const isSelected = selectedSeats.includes(seatId);
 
                                     let bg = "transparent";
                                     let textColor = "#fff";
-                                    let displayText: string | number =
-                                        seatNumber;
+                                    let displayText: string | number = seatNumber;
 
-                                    // Unavailable -> red X
                                     if (isUnavailable) {
                                         bg = "red";
                                         textColor = "white";
@@ -470,18 +351,13 @@ export default function SeatSelectionPage() {
                                                 border: "1px solid #fff",
                                                 backgroundColor: bg,
                                                 color: textColor,
-                                                fontSize: isUnavailable
-                                                    ? "14px"
-                                                    : "11px",
+                                                fontSize: "11px",
                                                 cursor: isUnavailable
                                                     ? "not-allowed"
                                                     : "pointer",
                                                 display: "flex",
                                                 justifyContent: "center",
                                                 alignItems: "center",
-                                                fontWeight: isUnavailable
-                                                    ? "bold"
-                                                    : "normal",
                                             }}
                                         >
                                             {displayText}
@@ -518,12 +394,12 @@ export default function SeatSelectionPage() {
                             fontSize: "13px",
                         }}
                     >
-                        STAGE
+                        SCREEN
                     </div>
                 </div>
             </div>
 
-            {/* Selection summary + button */}
+            {/* Selection summary + legend + button */}
             <div
                 style={{
                     display: "flex",
@@ -544,6 +420,59 @@ export default function SeatSelectionPage() {
                     {totalTickets > 0 && ` / ${totalTickets}`}
                 </p>
 
+                <div
+                    style={{
+                        display: "flex",
+                        gap: "16px",
+                        fontSize: "12px",
+                        color: "#333",
+                        marginBottom: "12px",
+                    }}
+                >
+                    <span>
+                        <span
+                            style={{
+                                display: "inline-block",
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "3px",
+                                border: "1px solid #000",
+                                marginRight: "4px",
+                                backgroundColor: "#fff",
+                            }}
+                        />{" "}
+                        Selected
+                    </span>
+                    <span>
+                        <span
+                            style={{
+                                display: "inline-block",
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "3px",
+                                border: "1px solid #000",
+                                marginRight: "4px",
+                                backgroundColor: "#000",
+                            }}
+                        />{" "}
+                        Available
+                    </span>
+                    <span>
+                        <span
+                            style={{
+                                display: "inline-block",
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "3px",
+                                border: "1px solid #000",
+                                marginRight: "4px",
+                                backgroundColor: "#555",
+                            }}
+                        />{" "}
+                        Unavailable
+                    </span>
+                </div>
+
                 <button
                     onClick={handleConfirmSeats}
                     style={{
@@ -557,7 +486,7 @@ export default function SeatSelectionPage() {
                         cursor: "pointer",
                     }}
                 >
-                    Continue to Booking Summary
+                    Continue
                 </button>
             </div>
         </div>
