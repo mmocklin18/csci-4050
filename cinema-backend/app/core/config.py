@@ -1,43 +1,43 @@
-from pathlib import Path
-import re
-from typing import Optional
+from pydantic_settings import BaseSettings
 
-ENV_FILE = Path(".env")
+class Settings(BaseSettings):
+    # Database
+    DB_HOST: str
+    DB_PORT: str
+    DB_NAME: str
+    DB_USER: str
+    DB_PASSWORD: str
+    DB_SSL_CA: str
 
-def _read_env_text() -> str:
-    if not ENV_FILE.exists():
-        return ""
-    txt = ENV_FILE.read_text(errors="ignore")
-    if txt.lstrip().startswith("{\\rtf"):
-        txt = re.sub(r"\\[a-zA-Z]+(?:-?\d+)? ?|[{}]", " ", txt)
-    return txt
+    # App
+    DEBUG: bool = False
+    PROJECT_NAME: str = "Cinema Booking App"
+    
+    # Auth / JWT
+    JWT_SECRET: str
+    JWT_ALGO: str = "HS256"
+    JWT_EXPIRES_MINS: int = 30
 
-def _get(k: str, text: str) -> Optional[str]:
-    # robust KEY=VALUE extraction across weird spacing/line breaks
-    m = re.search(rf"\b{k}\s*=\s*([^\s\\]+)", text)
-    return m.group(1).strip() if m else None
+    # Email / verification
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int | None = None
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_USE_TLS: bool = True
+    SMTP_USE_SSL: bool = False
+    SMTP_VALIDATE_CERTS: bool = True
+    EMAIL_FROM: str | None = None
+    EMAIL_FROM_NAME: str | None = None
+    APP_BASE_URL: str = "http://localhost:8000"
+    VERIFICATION_BASE_URL: str | None = None
+    VERIFICATION_TTL_HOURS: int = 24
+    PASSWORD_RESET_BASE_URL: str | None = None
+    PASSWORD_RESET_TTL_HOURS: int = 1
+    # Encryption
+    ENCRYPTION_KEY: str  
 
-_env_text = _read_env_text()
+    class Config:
+        env_file = ".env"
 
-DB_HOST = _get("DB_HOST", _env_text)
-DB_PORT = int(_get("DB_PORT", _env_text) or 3306)
-DB_NAME = _get("DB_NAME", _env_text)
-DB_USER = _get("DB_USER", _env_text)
-DB_PASSWORD = _get("DB_PASSWORD", _env_text)
-DB_SSL_CA = _get("DB_SSL_CA", _env_text)
-
-def resolve_ca_path() -> Optional[str]:
-    # 1) use the provided path if it exists
-    if DB_SSL_CA and Path(DB_SSL_CA).exists():
-        return DB_SSL_CA
-    # 2) try common local locations (no file edits needed)
-    for p in [Path("ca.pem"), Path("certs/aiven-ca.pem")]:
-        if p.exists():
-            return str(p)
-    return None
-
-CA_PATH = resolve_ca_path()
-
-API_PORT = int(_get("API_PORT", _env_text) or 4000)
-CORS_ORIGINS = _get("CORS_ORIGINS", _env_text) or "http://localhost:3000"
-CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+# create settings object to import anywhere
+settings = Settings()

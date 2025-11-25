@@ -1,6 +1,8 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { fetchMovies, BackendMovie } from "@/lib/api";
+import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+import Navbar from "../components/Navbar";
+
 
 type Rating = "G" | "PG" | "PG-13" | "R";
 type Status = "current" | "comingSoon";
@@ -15,39 +17,82 @@ interface Movie {
     showtimes: string[];
 }
 
-const Genres = [ "Action", "Animation", "Comedy", "Drama", "Fantasy",
-    "Horror", "Romance", "Sci-Fi", "Thriller", "Musical",
+const Genres = [
+    "Action",
+    "Animation",
+    "Comedy",
+    "Drama",
+    "Family",
+    "Fantasy",
+    "Horror",
+    "Musical",
+    "Mystery",
+    "Romance",
+    "Sci-Fi",
+    "Sports",
+    "Thriller",
 ];
 
-// your original static demo movies
-const StaticMovies: Movie[] = [ /* … keep your existing 4 objects … */ ];
+type ApiMovie = {
+    movie_id: number;
+    name: string;
+    description: string;
+    rating: "G" | "PG" | "PG-13" | "R";
+    runtime: number;
+    release_date: string;
+    available: boolean;
+    poster: string;
+    trailer: string | null;
+    theater: string | null;
+    main_genre: string;
+};
+
+type ApiShow = {
+    show_id: number;
+    movieid: number;
+    showroom_id: number;
+    date_time: string;
+    duration: number;
+};
+
+function toStatus(m: ApiMovie): Status {
+    if (m.available) return "current";
+    const t = Date.parse(m.release_date);
+    return Number.isFinite(t) && t <= Date.now() ? "current" : "comingSoon";
+}
+
+function formatShowLabel(dateStr: string): string {
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "TBA";
+    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
+function mapApiMovie(m: ApiMovie, showtimes: string[] = []): Movie {
+    return {
+        id: String(m.movie_id),
+        title: m.name,
+        rating: m.rating,
+        genre: m.main_genre ?? "Drama",
+        status: toStatus(m),
+        poster: m.poster ?? "/placeholder.png",
+        showtimes,
+    };
+}
 
 export default function Page() {
     const [genres, setGenres] = useState<Set<string>>(new Set());
     const [searchText, setSearchText] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [backendMovies, setBackendMovies] = useState<Movie[]>([]);
+    const [apiMovies, setApiMovies] = useState<ApiMovie[]>([]);
+    const [showtimesByMovie, setShowtimesByMovie] = useState<Record<string, string[]>>({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // fetch backend movies on mount
-    useEffect(() => {
-        fetchMovies()
-            .then((data) => {
-                // normalize backend data into Movie type
-                const normalized: Movie[] = data.map((m) => ({
-                    id: String(m.id),
-                    title: m.title,
-                    genre: m.genre ?? "Unknown",
-                    rating: (m.rating as Rating) ?? "PG",
-                    status: (m.status as Status) ?? "current",
-                    poster:
-                        m.poster ??
-                        "https://via.placeholder.com/500x750.png?text=No+Poster",
-                    showtimes: m.showtimes ?? [],
-                }));
-                setBackendMovies(normalized);
-            })
-            .catch((e) => console.error("Failed to fetch backend movies", e));
-    }, []);
+    const movies = useMemo(() => {
+        return apiMovies.map((m) =>
+            mapApiMovie(m, showtimesByMovie[String(m.movie_id)] ?? [])
+        );
+    }, [apiMovies, showtimesByMovie]);
 
     const onSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -61,18 +106,54 @@ export default function Page() {
         return next;
     };
 
-    // combine static + backend
-    const allMovies = [...StaticMovies, ...backendMovies];
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("/api/movies", { cache: "no-store" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const api: ApiMovie[] = await res.json();
+                if (alive) setApiMovies(api ?? []);
+            } catch (err: unknown) {
+                const message =
+                    err instanceof Error ? err.message : "Failed to load movies";
+                setError(message);
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        (async () => {
+            try {
+                const res = await fetch("/api/shows", { cache: "no-store" });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const shows: ApiShow[] = await res.json();
+                const grouped: Record<string, string[]> = {};
+                (shows ?? []).forEach((show) => {
+                    const key = String(show.movieid);
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(formatShowLabel(show.date_time));
+                });
+                Object.keys(grouped).forEach((key) => {
+                    grouped[key].sort();
+                });
+                if (alive) setShowtimesByMovie(grouped);
+            } catch (err) {
+                console.error("Failed to fetch showtimes", err);
+                if (alive) setShowtimesByMovie({});
+            }
+        })();
+        return () => { alive = false; };
+    }, []);
 
     const filtered = useMemo(() => {
-        return allMovies.filter((m) => {
+        return movies.filter((m) => {
             const matchesTitle =
-                !searchQuery ||
-                m.title.toLowerCase().includes(searchQuery.toLowerCase());
+                !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesGenres = genres.size === 0 || genres.has(m.genre);
             return matchesTitle && matchesGenres;
         });
-    }, [searchQuery, genres, allMovies]);
+    }, [movies, searchQuery, genres]);
 
     const current = filtered.filter((m) => m.status === "current");
     const coming  = filtered.filter((m) => m.status === "comingSoon");
