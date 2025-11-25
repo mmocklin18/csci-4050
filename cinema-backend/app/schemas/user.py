@@ -62,10 +62,6 @@ class UserUpdate(BaseModel):
    new_password: Optional[constr(min_length=8)] = None
    current_password: Optional[str] = None
    promo: Optional[bool] = None
-   
-class UserRoleUpdate(BaseModel):
-    role: UserType
-
 
 
 class Token(BaseModel):

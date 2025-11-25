@@ -10,9 +10,8 @@ from app.core.dependencies import get_current_user
 from app.core.security import get_password_hash, verify_password
 from app.models.address import Address
 from app.models.user import User
+from app.schemas.user import UserRead, UserUpdate
 from app.services.email_notifications import queue_profile_update_email
-from app.schemas.user import UserRead, UserUpdate, UserRoleUpdate, UserType
-
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -59,30 +58,6 @@ async def delete_user(
 
     await db.delete(user)
     await db.commit()
-
-
-@router.patch("/{user_id}/role", response_model=UserRead)
-async def update_user_role(
-    user_id: int,
-    payload: UserRoleUpdate,
-    db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
-):
-    """Admin-only: update another user's role."""
-    if current_user.role != UserType.admin:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    user = await db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if user.user_id == current_user.user_id:
-        raise HTTPException(status_code=400, detail="Cannot change your own role")
-
-    user.role = payload.role
-    await db.commit()
-    await db.refresh(user)
-    return user
 
 
 @router.patch("/", response_model=UserRead)

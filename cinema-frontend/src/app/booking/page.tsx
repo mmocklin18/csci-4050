@@ -1,21 +1,7 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-
-function formatShowtimeLabel(iso: string | null): string | null {
-    if (!iso) return null;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-}
-
-function extractDatePart(iso: string | null): string | null {
-    if (!iso) return null;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toISOString().split("T")[0];
-}
 
 export default function Booking() {
     const params = useSearchParams();
@@ -38,7 +24,6 @@ export default function Booking() {
         const storedDate = derivedDate || localStorage.getItem("selectedDate");
         if (storedDate) {
             setSelectedDate(storedDate);
-            localStorage.setItem("selectedDate", storedDate);
         }
 
         // Load ticket counts (if previously saved)
