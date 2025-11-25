@@ -260,8 +260,8 @@ export default function Page() {
             color: #fff;
             border: 1px solid #fff;
             border-radius: 8px;
-            padding: 4px 10px;   /* ↓ reduced padding */
-            font-size: 14px;     /* ↓ smaller text */
+            padding: 4px 10px;   
+            font-size: 14px;     
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;

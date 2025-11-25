@@ -42,9 +42,9 @@ const formatPrettyDate = (value: string | null | undefined): string => {
     return value;
 };
 
-// NEW: format showtime as just the time (e.g. "2:00 PM")
-const formatTimeOnly = (value: string | null | undefined): string => {
+const formatShowtime = (value: string | null | undefined): string => {
     if (!value) return "";
+
     const d = new Date(value);
     if (!Number.isNaN(d.getTime())) {
         return d.toLocaleTimeString([], {
@@ -52,11 +52,16 @@ const formatTimeOnly = (value: string | null | undefined): string => {
             minute: "2-digit",
         });
     }
-    // fallback for "YYYY-MM-DD HH:MM:SS" style strings
+
+    if (value.includes("T")) {
+        const timePart = value.split("T")[1] ?? "";
+        return timePart.split(" ")[0];
+    }
     if (value.includes(" ")) {
         const parts = value.split(" ");
         return parts[1] || value;
     }
+
     return value;
 };
 
@@ -67,12 +72,23 @@ const SAVED_METHODS = [
     { id: "saved2", label: "Mastercard •••• 8899", detail: "Expires 05/26" },
 ] as const;
 
+type ApiPromotion = {
+    promotions_id: number;
+    code: string;
+    discount: number;
+    start_date: string | null;
+    end_date: string | null;
+};
+
 export default function CheckoutPage() {
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
+
     const [promoCode, setPromoCode] = useState("");
-    const [appliedCode, setAppliedCode] = useState<string | null>(null);
+    const [promo, setPromo] = useState<ApiPromotion | null>(null);
     const [promoError, setPromoError] = useState<string | null>(null);
+    const [promoLoading, setPromoLoading] = useState(false);
+
     const [paymentOption, setPaymentOption] =
         useState<PaymentOptionId>("saved1");
 
@@ -90,23 +106,56 @@ export default function CheckoutPage() {
 
     const baseTotal = booking?.total ?? 0;
     const datePretty = formatPrettyDate(booking?.date);
-    const timePretty = formatTimeOnly(booking?.showtime); // NEW
+    const showtimePretty = formatShowtime(booking?.showtime);
 
     let discount = 0;
-    if (appliedCode === "SAVE10") discount = baseTotal * 0.1;
-    if (appliedCode === "FIVEOFF") discount = 5;
-    if (discount > baseTotal) discount = baseTotal;
+    if (promo && baseTotal > 0) {
+
+        discount = (promo.discount / 100) * baseTotal;
+
+        if (discount > baseTotal) discount = baseTotal;
+    }
 
     const finalTotal = baseTotal - discount;
 
-    const applyPromo = () => {
+    const applyPromo = async () => {
         const code = promoCode.trim().toUpperCase();
-        if (code === "SAVE10" || code === "FIVEOFF") {
-            setAppliedCode(code);
-            setPromoError(null);
-        } else {
-            setAppliedCode(null);
-            setPromoError("Invalid promo code.");
+        if (!code) {
+            setPromoError("Please enter a promo code.");
+            setPromo(null);
+            return;
+        }
+
+        setPromoLoading(true);
+        setPromoError(null);
+        setPromo(null);
+
+        try {
+            const res = await fetch(
+                `/api/promotions?code=${encodeURIComponent(code)}`,
+                { cache: "no-store" }
+            );
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`HTTP ${res.status}: ${text}`);
+            }
+
+            const promos: ApiPromotion[] = await res.json();
+
+            if (!promos.length) {
+                setPromoError("Promo code not found or not active.");
+                setPromo(null);
+                return;
+            }
+
+            setPromo(promos[0]);
+        } catch (err) {
+            console.error("Failed to apply promo:", err);
+            setPromoError("Could not validate promo code.");
+            setPromo(null);
+        } finally {
+            setPromoLoading(false);
         }
     };
 
@@ -143,7 +192,6 @@ export default function CheckoutPage() {
                 Checkout
             </h1>
 
-            {/* TWO COLUMN LAYOUT */}
             <div
                 style={{
                     display: "flex",
@@ -155,6 +203,7 @@ export default function CheckoutPage() {
                     gap: "20px",
                 }}
             >
+
                 <div style={{ flex: 1, minWidth: "300px" }}>
                     <div
                         style={{
@@ -177,11 +226,7 @@ export default function CheckoutPage() {
 
                         <p><strong>Movie:</strong> {booking?.movie}</p>
                         <p><strong>Date:</strong> {datePretty}</p>
-                        {/* UPDATED SHOWTIME LINE */}
-                        <p>
-                            <strong>Showtime:</strong>{" "}
-                            {timePretty || "Not specified"}
-                        </p>
+                        <p><strong>Showtime:</strong> {showtimePretty}</p>
                         <p><strong>Tickets:</strong> {totalTickets}</p>
                         <p><strong>Showroom:</strong> {booking?.showroom}</p>
                         <p><strong>Seat(s):</strong> {seats.join(", ")}</p>
@@ -206,7 +251,7 @@ export default function CheckoutPage() {
                             }}
                         >
                             <span>Discount:</span>
-                            <strong>-${discount.toFixed(2)}</strong>
+                            <strong>- ${discount.toFixed(2)}</strong>
                         </p>
 
                         <p
@@ -220,13 +265,24 @@ export default function CheckoutPage() {
                             <span>Total:</span>
                             <strong>${finalTotal.toFixed(2)}</strong>
                         </p>
+
+                        {promo && (
+                            <p
+                                style={{
+                                    marginTop: "6px",
+                                    fontSize: "13px",
+                                    color: "#16a34a",
+                                }}
+                            >
+                                Promo <strong>{promo.code}</strong> (
+                                {promo.discount}% off) applied.
+                            </p>
+                        )}
                     </div>
                 </div>
 
-                {/* RIGHT SIDE — PROMO + PAYMENT */}
                 <div style={{ flex: 1, minWidth: "300px" }}>
-                    {/* Promo & Payment sections unchanged */}
-                    {/* PROMO CODE */}
+
                     <div
                         style={{
                             backgroundColor: "#f9f9f9",
@@ -251,7 +307,9 @@ export default function CheckoutPage() {
                             <input
                                 type="text"
                                 value={promoCode}
-                                onChange={(e) => setPromoCode(e.target.value)}
+                                onChange={(e) =>
+                                    setPromoCode(e.target.value)
+                                }
                                 placeholder="Enter Promo Code"
                                 style={{
                                     flex: 1,
@@ -262,16 +320,20 @@ export default function CheckoutPage() {
                             />
                             <button
                                 onClick={applyPromo}
+                                disabled={promoLoading}
                                 style={{
                                     padding: "8px 14px",
                                     borderRadius: "6px",
                                     backgroundColor: "#000",
                                     color: "white",
                                     fontWeight: "bold",
-                                    cursor: "pointer",
+                                    cursor: promoLoading
+                                        ? "default"
+                                        : "pointer",
+                                    opacity: promoLoading ? 0.7 : 1,
                                 }}
                             >
-                                Apply
+                                {promoLoading ? "Checking..." : "Apply"}
                             </button>
                         </div>
 
@@ -280,15 +342,8 @@ export default function CheckoutPage() {
                                 {promoError}
                             </p>
                         )}
-
-                        {appliedCode && (
-                            <p style={{ color: "green", marginTop: "5px" }}>
-                                Promo {appliedCode} applied!
-                            </p>
-                        )}
                     </div>
 
-                    {/* PAYMENT METHODS */}
                     <div
                         style={{
                             backgroundColor: "#f9f9f9",
@@ -335,14 +390,18 @@ export default function CheckoutPage() {
                                 />
                                 <div>
                                     <div>{method.label}</div>
-                                    <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                                    <div
+                                        style={{
+                                            fontSize: "12px",
+                                            opacity: 0.7,
+                                        }}
+                                    >
                                         {method.detail}
                                     </div>
                                 </div>
                             </label>
                         ))}
 
-                        {/* NEW CARD OPTION */}
                         <label
                             style={{
                                 display: "flex",
@@ -415,7 +474,6 @@ export default function CheckoutPage() {
                             </div>
                         )}
 
-                        {/* PLACE ORDER */}
                         <button
                             onClick={placeOrder}
                             style={{

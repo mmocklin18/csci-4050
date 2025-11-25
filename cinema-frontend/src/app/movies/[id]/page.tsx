@@ -13,7 +13,7 @@ type ApiMovie = {
     description: string;
     rating: "G" | "PG" | "PG-13" | "R";
     runtime: number;
-    release_date: string;     // ISO
+    release_date: string;
     available: boolean;
     poster: string;
     trailer: string | null;
@@ -78,7 +78,7 @@ function showDateValue(dateStr: string): string {
 function formatShowLabel(dateStr: string): string {
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return "TBA";
-    return date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    return date.toLocaleTimeString([], { timeStyle: "short" });
 }
 
 export default function MovieDetails() {
@@ -91,6 +91,7 @@ export default function MovieDetails() {
     const [showtimes, setShowtimes] = useState<ApiShow[]>([]);
     const [showtimeErr, setShowtimeErr] = useState<string | null>(null);
     const [showtimeLoading, setShowtimeLoading] = useState(true);
+    const todayStr = new Date().toISOString().split("T")[0];
 
     useEffect(() => {
         if (date) localStorage.setItem("selectedDate", date);
@@ -142,33 +143,54 @@ export default function MovieDetails() {
 
     useEffect(() => {
         if (!date && showtimes.length) {
-            const first = showDateValue(showtimes[0].date_time);
-            if (first) setDate(first);
+            const now = new Date();
+            const future = showtimes.filter((show) => {
+                const dt = new Date(show.date_time);
+                return !Number.isNaN(dt.getTime()) && dt >= now;
+            });
+
+            if (future.length > 0) {
+                const first = showDateValue(future[0].date_time);
+                if (first) setDate(first);
+            }
         }
     }, [showtimes, date]);
 
-    const filteredShowtimes = showtimes.filter((show) => {
+
+    const now = new Date();
+
+    const futureShowtimes = showtimes.filter((show) => {
+        const dt = new Date(show.date_time);
+        if (Number.isNaN(dt.getTime())) return false;
+        return dt >= now;
+    });
+
+    const filteredShowtimes = futureShowtimes.filter((show) => {
         if (!date) return true;
         return showDateValue(show.date_time) === date;
     });
+
+    const showtimesFiltered = filteredShowtimes;
+    const noMatchesForDate = Boolean(
+        date && filteredShowtimes.length === 0 && futureShowtimes.length > 0
+    );
+
 
     if (loading) return <main className="p-6">Loading…</main>;
     if (err) return <main className="p-6 text-red-600">Error: {err}</main>;
     if (!movie) return <main className="p-6">Movie not found.</main>;
 
-    const showtimesFiltered = filteredShowtimes.length ? filteredShowtimes : showtimes;
-    const noMatchesForDate = Boolean(date && filteredShowtimes.length === 0 && showtimes.length > 0);
 
     return (
-		<div style={{ backgroundColor: "#fff", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0}}>
+        <div style={{ backgroundColor: "#fff", top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0}}>
             <Navbar/>
-			<div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px", padding: "20px"}}>
-				<img src={movie.posterUrl} alt={movie.title} style={{ width: 200, borderRadius: 12, marginRight: "20px" }} />
-				<div>
-					<h1 style={{color: "black", fontSize: "40px", fontWeight: "bold"}}>{movie.title}</h1>
-					<p style={{color: "black"}}> <strong>Rating:</strong> {movie.rating}</p>
-					<p style={{color: "black"}}><strong>Description:</strong> {movie.description}</p>
-                    
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "8px", padding: "20px"}}>
+                <img src={movie.posterUrl} alt={movie.title} style={{ width: 200, borderRadius: 12, marginRight: "20px" }} />
+                <div>
+                    <h1 style={{color: "black", fontSize: "40px", fontWeight: "bold"}}>{movie.title}</h1>
+                    <p style={{color: "black"}}> <strong>Rating:</strong> {movie.rating}</p>
+                    <p style={{color: "black"}}><strong>Description:</strong> {movie.description}</p>
+
                     {/*Date input box*/}
                     <div
                         style={{
@@ -198,6 +220,7 @@ export default function MovieDetails() {
                             <input
                                 type="date"
                                 value={date}
+                                min={todayStr}
                                 onChange={(e) => setDate(e.target.value)}
                                 onFocus={() => setDateFocused(true)}
                                 onBlur={() => setDateFocused(false)}
@@ -218,69 +241,100 @@ export default function MovieDetails() {
                         </div>
                     </div>
 
-					<h2 style={{color: "black"}}><strong>Showtimes (select one below):</strong></h2>
-					{showtimeLoading ? (
-						<p style={{ color: "#555" }}>Loading showtimes…</p>
-					) : showtimeErr ? (
-						<p style={{ color: "#b91c1c" }}>Error loading showtimes: {showtimeErr}</p>
-					) : showtimes.length === 0 ? (
-						<p style={{ color: "#555" }}>No showtimes scheduled yet. Please check back later.</p>
-					) : (
-						<>
-							{noMatchesForDate && (
-								<p style={{ color: "#b45309" }}>No showtimes on the selected date. Showing all upcoming times instead.</p>
-							)}
-							<ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: "5px"}}>
-								{showtimesFiltered.map((show) => {
-									const label = formatShowLabel(show.date_time);
-									const showDate = showDateValue(show.date_time);
-									const href = `/booking?title=${encodeURIComponent(movie.title)}&showId=${show.show_id}&time=${encodeURIComponent(show.date_time)}${showDate ? `&date=${encodeURIComponent(showDate)}` : ""}`;
-									return (
-										<li key={show.show_id}>
-											<Link
-												href={href}
-												onClick={() => {
-													if (showDate) {
-														localStorage.setItem("selectedDate", showDate);
-													}
-												}}
-												style={{
-													display: "inline-block",
-													padding: "8px 16px",
-													margin: "4px",
-													backgroundColor: "#000000ff",
-													color: "white",
-													borderRadius: "8px",
-													textDecoration: "none",
-													fontWeight: "bold",
-													boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-													transition: "background-color 0.3s ease",
-													cursor: "pointer",
-												}}
-											>
-												{label}
-											</Link>
-										</li>
-									);
-								})}
-							</ul>
-						</>
-					)}
-				</div>
-			</div>
+                    <h2 style={{color: "black"}}><strong>Showtimes (select one below):</strong></h2>
+                    {showtimeLoading ? (
+                        <p style={{ color: "#555" }}>Loading showtimes…</p>
+                    ) : showtimeErr ? (
+                        <p style={{ color: "#b91c1c" }}>
+                            Error loading showtimes: {showtimeErr}
+                        </p>
+                    ) : futureShowtimes.length === 0 ? (
+                        <p style={{ color: "#555" }}>
+                            No upcoming showtimes. Please check back later.
+                        </p>
+                    ) : (
+                        <>
+                            {noMatchesForDate && (
+                                <p style={{ color: "#b45309" }}>
+                                    No showtimes on the selected date.
+                                </p>
+                            )}
+                            <ul
+                                style={{
+                                    listStyle: "none",
+                                    padding: 0,
+                                    margin: 0,
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "5px",
+                                }}
+                            >
+                                {showtimesFiltered.map((show) => {
+                                    const label = formatShowLabel(show.date_time);
+                                    const showDate = showDateValue(show.date_time);
+                                    const href = `/booking?title=${encodeURIComponent(
+                                        movie.title
+                                    )}&showId=${show.show_id}&time=${encodeURIComponent(
+                                        show.date_time
+                                    )}${
+                                        showDate
+                                            ? `&date=${encodeURIComponent(showDate)}`
+                                            : ""
+                                    }&showroom=${encodeURIComponent(
+                                        String(show.showroom_id)
+                                    )}`;
 
-			<div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
-				<h2 style={{fontSize: "20px", fontWeight: "bold", color: "black", marginBottom: "15px" }}>Trailer</h2>
-				<iframe 
+                                    return (
+                                        <li key={show.show_id}>
+                                            <Link
+                                                href={href}
+                                                onClick={() => {
+                                                    if (showDate) {
+                                                        localStorage.setItem(
+                                                            "selectedDate",
+                                                            showDate
+                                                        );
+                                                    }
+                                                }}
+                                                style={{
+                                                    display: "inline-block",
+                                                    padding: "8px 16px",
+                                                    margin: "4px",
+                                                    backgroundColor: "#000000ff",
+                                                    color: "white",
+                                                    borderRadius: "8px",
+                                                    textDecoration: "none",
+                                                    fontWeight: "bold",
+                                                    boxShadow:
+                                                        "0 4px 6px rgba(0, 0, 0, 0.1)",
+                                                    transition:
+                                                        "background-color 0.3s ease",
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                {label}
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", marginTop: "8px" }}>
+                <h2 style={{fontSize: "20px", fontWeight: "bold", color: "black", marginBottom: "15px" }}>Trailer</h2>
+                <iframe
                     style = {{marginBottom: "20px", borderRadius: 12}}
-					width="500"
-					height="300"
+                    width="500"
+                    height="300"
                     src={`${movie.trailerEmbedUrl}?rel=0`}
-					title="Movie Trailer"
-					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-					allowFullScreen
-				/>
-			</div>
-		</div>
-	);
+                    title="Movie Trailer"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                />
+            </div>
+        </div>
+    );
 }
