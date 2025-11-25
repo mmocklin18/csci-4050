@@ -264,7 +264,7 @@ export default function SeatSelectionPage() {
                 Seat Selection
             </h1>
 
-            {/* Booking info + showroom */}
+
             <div
                 style={{
                     display: "flex",
@@ -309,7 +309,7 @@ export default function SeatSelectionPage() {
                 </div>
             </div>
 
-            {/* Seat map */}
+
             <div
                 style={{
                     display: "flex",

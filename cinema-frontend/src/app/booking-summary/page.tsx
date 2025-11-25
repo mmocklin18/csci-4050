@@ -421,7 +421,7 @@ export default function BookingSummaryPage() {
                             color: "#111",
                         }}
                     >
-                        Selected Seats
+                        Selected Seat(s)
                     </h2>
 
                     {seats.length === 0 ? (
