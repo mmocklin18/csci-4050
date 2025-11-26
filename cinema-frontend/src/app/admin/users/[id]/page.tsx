@@ -9,7 +9,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
-  state: string; // active, inactive, suspended
+  state: string; // active, inactive, suspended states
 }
 
 export default function UserDetails() {
