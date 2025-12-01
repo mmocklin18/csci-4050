@@ -207,7 +207,7 @@ export default function BookingSummaryPage() {
 
     const handleContinueClick = () => {
         const token =
-            localStorage.getItem("access_token") ||
+            localStorage.getItem("auth_token") ||
             localStorage.getItem("token");
 
         if (token) {

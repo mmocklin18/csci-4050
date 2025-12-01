@@ -13,9 +13,11 @@ class OrderConfirmationRequest(BaseModel):
 
 class BookingRead(BaseModel):
     booking_id: int
+    user_id: int
     show_id: int
     total_amount: float
     created_at: datetime
-    reserved_seats: List[ReservedSeatRead]
+    reserved_seats: list[ReservedSeatRead]
 
     model_config = ConfigDict(from_attributes=True)
+

@@ -12,6 +12,7 @@ from app.routers.seat import router as seat_router
 from app.routers.promotions import router as promotions_router
 from app.routers.price import router as price_router
 from app.routers.orders import router as orders_router
+from app.routers.orders import router as orders_router
 
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +44,7 @@ app.include_router(seat_router)
 app.include_router(booking_router)
 app.include_router(promotions_router)
 app.include_router(price_router)
+app.include_router(orders_router)
 app.include_router(orders_router)
 
 

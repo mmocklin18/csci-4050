@@ -64,6 +64,7 @@ async def send_order_confirmation(
             "One or more seats do not belong to the selected show",
         )
 
+    # Create booking record
     booking = Booking(
         user_id=payload.user_id,
         show_id=payload.show_id,
@@ -72,14 +73,33 @@ async def send_order_confirmation(
     db.add(booking)
     await db.flush()
 
-    for seat in seats:
-        reserved = ReservedSeat(
-            booking_id=booking.booking_id,
-            user_id=payload.user_id,
-            show_id=payload.show_id,
-            seat_id=seat.seats_id
+    # Link existing reservations (created via /booking/reserve) to this booking,
+    # or create them if they weren't created yet.
+    existing_result = await db.execute(
+        select(ReservedSeat).where(
+            ReservedSeat.show_id == payload.show_id,
+            ReservedSeat.seat_id.in_(payload.seat_ids),
         )
-        db.add(reserved)
+    )
+    existing = {rs.seat_id: rs for rs in existing_result.scalars().all()}
+
+    for seat in seats:
+        current = existing.get(seat.seats_id)
+        if current:
+            if current.user_id != payload.user_id:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"Seat {seat.row_no}{seat.seat_no} is reserved by another user",
+                )
+            current.booking_id = booking.booking_id
+        else:
+            reserved = ReservedSeat(
+                booking_id=booking.booking_id,
+                user_id=payload.user_id,
+                show_id=payload.show_id,
+                seat_id=seat.seats_id,
+            )
+            db.add(reserved)
 
     await db.commit()
     await db.refresh(booking)
