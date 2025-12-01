@@ -27,9 +27,23 @@ export default function Navbar() {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_user");
-        localStorage.removeItem("auth_meta");
+        const keysToClear = [
+            "auth_token",
+            "auth_user",
+            "auth_meta",
+            "user_id",
+            "booking_summary",
+            "selected_seats",
+            "selectedDate",
+            "tickets_adult",
+            "tickets_child",
+            "tickets_senior",
+        ];
+
+        for (const key of keysToClear) {
+            localStorage.removeItem(key);
+        }
+
         setAuthed(false);
         setUserType(null);
         router.push("/");
