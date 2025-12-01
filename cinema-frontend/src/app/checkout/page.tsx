@@ -262,6 +262,32 @@ export default function CheckoutPage() {
                 }
             }
 
+            try {
+                const emailRes = await fetch(
+                    `${API_BASE}/booking/confirm-email`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            show_id: showIdNum,
+                            seat_ids: seatIds,
+                            total_amount: finalTotal,
+                        }),
+                    }
+                );
+
+                if (!emailRes.ok) {
+                    const text = await emailRes.text();
+                    console.warn(
+                        "Order confirmation email did not send:",
+                        text || emailRes.status
+                    );
+                }
+            } catch (err) {
+                console.error("Failed to queue confirmation email:", err);
+            }
+
             alert(
                 `Order placed!\n\nMovie: ${booking.movie}\nSeats: ${seats.join(
                     ", "
