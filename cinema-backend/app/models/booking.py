@@ -10,6 +10,8 @@ class Booking(Base):
 
     show_id = Column(Integer, ForeignKey("show.show_id"), nullable=False)
     total_amount = Column(Float, nullable=False)
+    # DB has an integer creditcard column; keep it non-sensitive and defaulted
+    creditcard = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -27,20 +27,13 @@ interface UserProfile {
   promo: boolean;
 }
 
-interface ReservedSeat {
-  reserved_id: number;
-  seat_id: number;
-  show_id: number;
-  user_id: number;
-  booked_at: string;
-}
-
 interface Order {
   booking_id: number;
-  show_id: number;
   total_amount: number;
   created_at: string;
-  reserved_seats: ReservedSeat[];
+  movie_name?: string | null;
+  showroom?: string | null;
+  seat_labels?: string[] | null;
 }
 
 export default function ProfilePage() {
@@ -226,9 +219,6 @@ export default function ProfilePage() {
                   <strong>Booking ID:</strong> {order.booking_id}
                 </p>
                 <p>
-                  <strong>Show ID:</strong> {order.show_id}
-                </p>
-                <p>
                   <strong>Total:</strong> ${order.total_amount.toFixed(2)}
                 </p>
                 <p>
@@ -236,10 +226,18 @@ export default function ProfilePage() {
                   {new Date(order.created_at).toLocaleString()}
                 </p>
                 <p>
+                  <strong>Movie:</strong>{" "}
+                  {order.movie_name || "Unknown"}
+                </p>
+                <p>
+                  <strong>Theater:</strong>{" "}
+                  {order.showroom || "Unknown"}
+                </p>
+                <p>
                   <strong>Seats:</strong>{" "}
-                  {order.reserved_seats
-                    .map((s) => `Seat ${s.seat_id}`)
-                    .join(", ")}
+                  {order.seat_labels?.length
+                    ? order.seat_labels.join(", ")
+                    : "Unknown"}
                 </p>
               </div>
             ))

@@ -66,12 +66,7 @@ const formatTimeOnly = (value: string | null | undefined): string => {
     return value;
 };
 
-type PaymentOptionId = "saved1" | "saved2" | "new";
-
-const SAVED_METHODS = [
-    { id: "saved1", label: "Visa •••• 4242", detail: "Expires 12/27" },
-    { id: "saved2", label: "Mastercard •••• 8899", detail: "Expires 05/26" },
-] as const;
+type PaymentOptionId = "saved1" | "new";
 
 type ApiPromotion = {
     promotions_id: number;
@@ -86,13 +81,16 @@ export default function CheckoutPage() {
 
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
+    const [cards, setCards] = useState<
+        { card_id: number; label: string; detail: string }[]
+    >([]);
     const [promoCode, setPromoCode] = useState("");
     const [promo, setPromo] = useState<ApiPromotion | null>(null);
     const [appliedCode, setAppliedCode] = useState<string | null>(null);
     const [promoError, setPromoError] = useState<string | null>(null);
     const [promoLoading, setPromoLoading] = useState(false);
-    const [paymentOption, setPaymentOption] =
-        useState<PaymentOptionId>("saved1");
+    const [paymentOption, setPaymentOption] = useState<PaymentOptionId>("saved1");
+    const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
     const [placing, setPlacing] = useState(false);
 
     useEffect(() => {
@@ -100,6 +98,37 @@ export default function CheckoutPage() {
         const storedSeats = localStorage.getItem("selected_seats");
         if (stored) setBooking(JSON.parse(stored));
         if (storedSeats) setSeats(JSON.parse(storedSeats));
+
+        const token = localStorage.getItem("auth_token");
+        const userId = localStorage.getItem("user_id");
+
+        if (token && userId && API_BASE) {
+            fetch(`${API_BASE}/cards/user/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then(async (res) => {
+                    if (!res.ok) throw new Error(await res.text());
+                    return res.json();
+                })
+                .then((data: any[]) => {
+                    const formatted = data.map((c) => ({
+                        card_id: c.card_id,
+                        label: `Card •••• ${String(c.number).slice(-4)}`,
+                        detail: `Expires ${new Date(c.exp_date).toLocaleDateString("en-US", {
+                            month: "2-digit",
+                            year: "2-digit",
+                        })}`,
+                    }));
+                    setCards(formatted);
+                    if (formatted.length) {
+                        setPaymentOption("saved1");
+                        setSelectedCardId(formatted[0].card_id);
+                    }
+                })
+                .catch((err) => {
+                    console.warn("Could not load cards", err);
+                });
+        }
     }, []);
 
     const adults = booking?.tickets.adults ?? 0;
@@ -204,6 +233,11 @@ export default function CheckoutPage() {
             return;
         }
 
+        if (!selectedCardId) {
+            alert("Please choose a payment method.");
+            return;
+        }
+
         setPlacing(true);
 
         try {
@@ -244,48 +278,22 @@ export default function CheckoutPage() {
                 seatIds.push(seatId);
             }
 
-            // reserve seats
-            for (const seatId of seatIds) {
-                const res = await fetch(`${API_BASE}/booking/reserve`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        show_id: showIdNum,
-                        seat_id: seatId,
-                        user_id: userId,
-                    }),
-                });
+            // create booking, reserve seats, and queue email in one call
+            const checkoutRes = await fetch(`${API_BASE}/booking/checkout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: userId,
+                    show_id: showIdNum,
+                    seat_ids: seatIds,
+                    total_amount: finalTotal,
+                    creditcard: selectedCardId,
+                }),
+            });
 
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || "Failed to save booking.");
-                }
-            }
-
-            try {
-                const emailRes = await fetch(
-                    `${API_BASE}/booking/confirm-email`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            show_id: showIdNum,
-                            seat_ids: seatIds,
-                            total_amount: finalTotal,
-                        }),
-                    }
-                );
-
-                if (!emailRes.ok) {
-                    const text = await emailRes.text();
-                    console.warn(
-                        "Order confirmation email did not send:",
-                        text || emailRes.status
-                    );
-                }
-            } catch (err) {
-                console.error("Failed to queue confirmation email:", err);
+            if (!checkoutRes.ok) {
+                const text = await checkoutRes.text();
+                throw new Error(text || "Failed to place order.");
             }
 
             // Save booking summary for order confirmation
@@ -473,32 +481,42 @@ export default function CheckoutPage() {
                             Payment Method
                         </h3>
 
-                        {SAVED_METHODS.map((m) => (
-                            <label
-                                key={m.id}
-                                style={{
-                                    display: "flex",
-                                    padding: "8px",
-                                    border: paymentOption === m.id
-                                        ? "2px solid #000"
-                                        : "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    marginBottom: "6px",
-                                    cursor: "pointer",
-                                    gap: "8px",
-                                }}
-                            >
-                                <input
-                                    type="radio"
-                                    checked={paymentOption === m.id}
-                                    onChange={() => setPaymentOption(m.id)}
-                                />
-                                <div>
-                                    <div>{m.label}</div>
-                                    <div style={{ fontSize: "12px" }}>{m.detail}</div>
-                                </div>
-                            </label>
-                        ))}
+                        {cards.length === 0 ? (
+                            <p style={{ color: "#555", fontSize: "14px", marginBottom: "8px" }}>
+                                No saved cards found.
+                            </p>
+                        ) : (
+                            cards.map((m) => (
+                                <label
+                                    key={m.card_id}
+                                    style={{
+                                        display: "flex",
+                                        padding: "8px",
+                                        border:
+                                            paymentOption === "saved1" && selectedCardId === m.card_id
+                                                ? "2px solid #000"
+                                                : "1px solid #ddd",
+                                        borderRadius: "8px",
+                                        marginBottom: "6px",
+                                        cursor: "pointer",
+                                        gap: "8px",
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        checked={paymentOption === "saved1" && selectedCardId === m.card_id}
+                                        onChange={() => {
+                                            setPaymentOption("saved1");
+                                            setSelectedCardId(m.card_id);
+                                        }}
+                                    />
+                                    <div>
+                                        <div>{m.label}</div>
+                                        <div style={{ fontSize: "12px" }}>{m.detail}</div>
+                                    </div>
+                                </label>
+                            ))
+                        )}
 
                         {/* NEW CARD */}
                         <label
@@ -517,7 +535,10 @@ export default function CheckoutPage() {
                             <input
                                 type="radio"
                                 checked={paymentOption === "new"}
-                                onChange={() => setPaymentOption("new")}
+                                onChange={() => {
+                                    setPaymentOption("new");
+                                    setSelectedCardId(null);
+                                }}
                             />
                             Use a new card
                         </label>

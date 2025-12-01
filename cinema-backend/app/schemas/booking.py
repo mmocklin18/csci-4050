@@ -9,6 +9,7 @@ class OrderConfirmationRequest(BaseModel):
     show_id: int
     seat_ids: List[int] = Field(min_length=1)
     total_amount: float = Field(ge=0)
+    creditcard: int | None = None
 
 
 class BookingRead(BaseModel):
@@ -18,6 +19,8 @@ class BookingRead(BaseModel):
     total_amount: float
     created_at: datetime
     reserved_seats: list[ReservedSeatRead]
+    movie_name: str | None = None
+    showroom: str | None = None
+    seat_labels: list[str] | None = None
 
     model_config = ConfigDict(from_attributes=True)
-
