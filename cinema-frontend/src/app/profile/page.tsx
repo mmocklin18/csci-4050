@@ -27,16 +27,33 @@ interface UserProfile {
   promo: boolean;
 }
 
+interface ReservedSeat {
+  reserved_id: number;
+  seat_id: number;
+  show_id: number;
+  user_id: number;
+  booked_at: string;
+}
+
+interface Order {
+  booking_id: number;
+  show_id: number;
+  total_amount: number;
+  created_at: string;
+  reserved_seats: ReservedSeat[];
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
   useEffect(() => {
-    async function fetchProfileAndCards() {
+    async function fetchData() {
       try {
         const token = localStorage.getItem("auth_token");
         const userId = localStorage.getItem("user_id");
@@ -45,23 +62,31 @@ export default function ProfilePage() {
           return;
         }
 
-        // Fetch user info and cards
-        const [userRes, cardRes] = await Promise.all([
+        const [userRes, cardRes, orderRes] = await Promise.all([
           fetch(`${API_BASE}/user/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_BASE}/cards/user/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch(`${API_BASE}/orders/history`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
-        if (!userRes.ok) throw new Error("Failed to load user profile");
-        const userData = await userRes.json();
-        setProfile(userData);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setProfile(userData);
+        }
 
         if (cardRes.ok) {
           const cardData = await cardRes.json();
           setCards(cardData);
+        }
+
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          setOrders(orderData);
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -70,7 +95,7 @@ export default function ProfilePage() {
       }
     }
 
-    fetchProfileAndCards();
+    fetchData();
   }, [API_BASE, router]);
 
   if (loading)
@@ -88,13 +113,7 @@ export default function ProfilePage() {
     );
 
   return (
-    <div
-      style={{
-        backgroundColor: "#fff",
-        minHeight: "100vh",
-        color: "black",
-      }}
-    >
+    <div style={{ backgroundColor: "#fff", minHeight: "100vh", color: "black" }}>
       <Navbar />
 
       <div style={{ maxWidth: "600px", margin: "50px auto", padding: "20px" }}>
@@ -109,7 +128,6 @@ export default function ProfilePage() {
           My Profile
         </h1>
 
-        {/* Profile Info Card */}
         <div
           style={{
             border: "1px solid #ccc",
@@ -145,13 +163,13 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* Payment Methods Section */}
         <div
           style={{
             border: "1px solid #ccc",
             borderRadius: "10px",
             padding: "20px",
             boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            marginBottom: "20px",
           }}
         >
           <h3 style={{ textAlign: "center" }}>Payment Methods</h3>
@@ -176,6 +194,52 @@ export default function ProfilePage() {
                     month: "2-digit",
                     year: "numeric",
                   })}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Order History Section */}
+        <div
+          style={{
+            border: "1px solid #ccc",
+            borderRadius: "10px",
+            padding: "20px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3 style={{ textAlign: "center" }}>Order History</h3>
+          {orders.length === 0 ? (
+            <p>No previous orders.</p>
+          ) : (
+            orders.map((order) => (
+              <div
+                key={order.booking_id}
+                style={{
+                  borderBottom: "1px solid #eee",
+                  paddingBottom: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <p>
+                  <strong>Booking ID:</strong> {order.booking_id}
+                </p>
+                <p>
+                  <strong>Show ID:</strong> {order.show_id}
+                </p>
+                <p>
+                  <strong>Total:</strong> ${order.total_amount.toFixed(2)}
+                </p>
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {new Date(order.created_at).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Seats:</strong>{" "}
+                  {order.reserved_seats
+                    .map((s) => `Seat ${s.seat_id}`)
+                    .join(", ")}
                 </p>
               </div>
             ))

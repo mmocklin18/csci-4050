@@ -1,6 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
+
 from app.core.db import get_session
 from app.models.reserved_seats import ReservedSeat
 from app.models.show import Show
@@ -8,12 +10,15 @@ from app.models.seats import Seat
 from app.models.showroom import Showroom
 from app.models.movie import Movie
 from app.models.user import User
+from app.models.booking import Booking
+
 from app.schemas.booking import OrderConfirmationRequest
 from app.schemas.reserved_seats import ReservedSeatCreate, ReservedSeatRead
 from app.services.email_notifications import queue_order_confirmation_email
-from sqlalchemy.exc import IntegrityError
+
 
 router = APIRouter(prefix="/booking", tags=["Booking"])
+
 
 @router.post("/reserve", response_model=ReservedSeatRead)
 async def reserve_seat(payload: ReservedSeatCreate, db: AsyncSession = Depends(get_session)):
@@ -46,13 +51,11 @@ async def send_order_confirmation(
         select(Seat).where(Seat.seats_id.in_(payload.seat_ids))
     )
     seats = seats_result.scalars().all()
+
     found_ids = {seat.seats_id for seat in seats}
     missing = [seat_id for seat_id in payload.seat_ids if seat_id not in found_ids]
     if missing:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"Seat(s) not found: {missing}",
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Seat(s) not found: {missing}")
 
     invalid = [seat.seats_id for seat in seats if seat.showroom_id != show.showroom_id]
     if invalid:
@@ -60,6 +63,26 @@ async def send_order_confirmation(
             status.HTTP_400_BAD_REQUEST,
             "One or more seats do not belong to the selected show",
         )
+
+    booking = Booking(
+        user_id=payload.user_id,
+        show_id=payload.show_id,
+        total_amount=payload.total_amount,
+    )
+    db.add(booking)
+    await db.flush()
+
+    for seat in seats:
+        reserved = ReservedSeat(
+            booking_id=booking.booking_id,
+            user_id=payload.user_id,
+            show_id=payload.show_id,
+            seat_id=seat.seats_id
+        )
+        db.add(reserved)
+
+    await db.commit()
+    await db.refresh(booking)
 
     movie = await db.get(Movie, show.movieid)
     showroom = await db.get(Showroom, show.showroom_id)
