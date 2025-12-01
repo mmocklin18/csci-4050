@@ -63,8 +63,8 @@ class UserUpdate(BaseModel):
    current_password: Optional[str] = None
    promo: Optional[bool] = None
    
-class UserRoleUpdate(BaseModel):
-    role: UserType
+class UserStateUpdate(BaseModel):
+    state: StateType
 
 
 

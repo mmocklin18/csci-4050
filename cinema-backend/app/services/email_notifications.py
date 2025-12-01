@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import BackgroundTasks
 
@@ -228,6 +228,61 @@ async def send_promotion_email(
 
     await send_email(
         "New Cinema Booking promotion",
+        email,
+        body,
+    )
+
+
+def queue_order_confirmation_email(
+    background_tasks: BackgroundTasks,
+    *,
+    email: str,
+    first_name: str | None,
+    movie_title: str,
+    show_time: datetime,
+    showroom_name: str | None,
+    seats: list[str],
+    total_amount: float,
+) -> None:
+    background_tasks.add_task(
+        send_order_confirmation_email,
+        email,
+        first_name,
+        movie_title,
+        show_time,
+        showroom_name,
+        seats,
+        total_amount,
+    )
+
+
+async def send_order_confirmation_email(
+    email: str,
+    first_name: str | None,
+    movie_title: str,
+    show_time: datetime,
+    showroom_name: str | None,
+    seats: list[str],
+    total_amount: float,
+) -> None:
+    greeting = f"Hi {first_name}," if first_name else "Hello,"
+    seat_line = ", ".join(seats) if seats else "TBD"
+    show_time_text = show_time.strftime("%A, %B %d, %Y at %I:%M %p")
+    showroom_text = showroom_name or "Showroom"
+    body = (
+        f"{greeting}\n\n"
+        "Thanks for your order—your tickets are confirmed!\n\n"
+        f"Movie: {movie_title}\n"
+        f"Showtime: {show_time_text}\n"
+        f"Showroom: {showroom_text}\n"
+        f"Seats: {seat_line}\n"
+        f"Total charged: ${total_amount:,.2f}\n\n"
+        "Please arrive a few minutes early and have this email handy if staff need to verify your booking.\n\n"
+        "Enjoy the show!\n"
+        "Cinema Booking Team"
+    )
+    await send_email(
+        "Your Cinema Booking order confirmation",
         email,
         body,
     )
