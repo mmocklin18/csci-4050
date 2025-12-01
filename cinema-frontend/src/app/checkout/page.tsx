@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 
 const API_BASE =
@@ -81,6 +82,8 @@ type ApiPromotion = {
 };
 
 export default function CheckoutPage() {
+    const router = useRouter(); 
+
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
     const [promoCode, setPromoCode] = useState("");
@@ -129,7 +132,6 @@ export default function CheckoutPage() {
             return;
         }
 
-        // Support static codes from the other implementation
         if (code === "SAVE10" || code === "FIVEOFF") {
             setAppliedCode(code);
             setPromo(null);
@@ -176,12 +178,12 @@ export default function CheckoutPage() {
         if (placing) return;
 
         if (!booking) {
-            alert("Booking details are missing. Please restart your checkout.");
+            alert("Booking details are missing. Please restart checkout.");
             return;
         }
 
         if (!booking.showId) {
-            alert("Showtime information is missing from your booking.");
+            alert("Showtime information is missing.");
             return;
         }
 
@@ -193,7 +195,7 @@ export default function CheckoutPage() {
         const userIdStr = localStorage.getItem("user_id");
         const userId = userIdStr ? Number(userIdStr) : NaN;
         if (!userIdStr || Number.isNaN(userId)) {
-            alert("Please log in before completing your purchase.");
+            alert("Please log in before purchasing.");
             return;
         }
 
@@ -206,9 +208,7 @@ export default function CheckoutPage() {
 
         try {
             const showIdNum = Number(booking.showId);
-            if (Number.isNaN(showIdNum)) {
-                throw new Error("Show ID is invalid.");
-            }
+            if (Number.isNaN(showIdNum)) throw new Error("Invalid show ID.");
 
             const seatRes = await fetch(
                 `${API_BASE}/seats/show/${encodeURIComponent(showIdNum)}/available`,
@@ -234,9 +234,8 @@ export default function CheckoutPage() {
             for (const label of seats) {
                 const cleaned = label.trim().toUpperCase();
                 const match = cleaned.match(/^([A-Z]+)(\d+)$/);
-                if (!match) {
-                    throw new Error(`Seat ${label} is not a valid format.`);
-                }
+                if (!match) throw new Error(`Seat ${label} is invalid.`);
+
                 const key = `${match[1]}${parseInt(match[2], 10)}`;
                 const seatId = seatMap.get(key);
                 if (!seatId) {
@@ -245,6 +244,7 @@ export default function CheckoutPage() {
                 seatIds.push(seatId);
             }
 
+            // reserve seats
             for (const seatId of seatIds) {
                 const res = await fetch(`${API_BASE}/booking/reserve`, {
                     method: "POST",
@@ -262,11 +262,21 @@ export default function CheckoutPage() {
                 }
             }
 
-            alert(
-                `Order placed!\n\nMovie: ${booking.movie}\nSeats: ${seats.join(
-                    ", "
-                )}\nTotal Charged: $${finalTotal.toFixed(2)}`
+            // Save booking summary for order confirmation
+            localStorage.setItem(
+                "booking_summary",
+                JSON.stringify({
+                    ...booking,
+                    discountedTotal: finalTotal,
+                    promoUsed: appliedCode || promo?.code || null,
+                    seats,
+                    baseTotal,
+                    discount,
+                })
             );
+
+            // Redirect to order confirmation page
+            router.push("/order-confirmation");
         } catch (err: unknown) {
             const message =
                 err instanceof Error ? err.message : "Failed to place order.";
@@ -301,7 +311,7 @@ export default function CheckoutPage() {
                 Checkout
             </h1>
 
-            {/* TWO COLUMN LAYOUT */}
+            {/* TWO COLUMNS */}
             <div
                 style={{
                     display: "flex",
@@ -313,6 +323,7 @@ export default function CheckoutPage() {
                     gap: "20px",
                 }}
             >
+                {/* LEFT — ORDER SUMMARY */}
                 <div style={{ flex: 1, minWidth: "300px" }}>
                     <div
                         style={{
@@ -323,34 +334,19 @@ export default function CheckoutPage() {
                             boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
                         }}
                     >
-                        <h2
-                            style={{
-                                fontSize: "18px",
-                                fontWeight: "bold",
-                                marginBottom: "10px",
-                            }}
-                        >
+                        <h2 style={{ fontSize: "18px", marginBottom: "10px" }}>
                             Order Summary
                         </h2>
-
                         <p><strong>Movie:</strong> {booking?.movie}</p>
                         <p><strong>Date:</strong> {datePretty}</p>
-                        <p>
-                            <strong>Showtime:</strong>{" "}
-                            {timePretty || "Not specified"}
-                        </p>
+                        <p><strong>Showtime:</strong> {timePretty}</p>
                         <p><strong>Tickets:</strong> {totalTickets}</p>
                         <p><strong>Showroom:</strong> {booking?.showroom}</p>
                         <p><strong>Seat(s):</strong> {seats.join(", ")}</p>
 
                         <hr style={{ margin: "10px 0" }} />
 
-                        <p
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                            }}
-                        >
+                        <p style={{ display: "flex", justifyContent: "space-between" }}>
                             <span>Base Total:</span>
                             <strong>${baseTotal.toFixed(2)}</strong>
                         </p>
@@ -377,36 +373,12 @@ export default function CheckoutPage() {
                             <span>Total:</span>
                             <strong>${finalTotal.toFixed(2)}</strong>
                         </p>
-
-                        {promo && (
-                            <p
-                                style={{
-                                    marginTop: "6px",
-                                    fontSize: "13px",
-                                    color: "#16a34a",
-                                }}
-                            >
-                                Promo <strong>{promo.code}</strong> ({promo.discount}% off)
-                                applied.
-                            </p>
-                        )}
-
-                        {appliedCode && !promo && (
-                            <p
-                                style={{
-                                    marginTop: "6px",
-                                    fontSize: "13px",
-                                    color: "#16a34a",
-                                }}
-                            >
-                                Promo <strong>{appliedCode}</strong> applied.
-                            </p>
-                        )}
                     </div>
                 </div>
 
-                {/* RIGHT SIDE — PROMO + PAYMENT */}
+                {/* RIGHT — PROMO + PAYMENT */}
                 <div style={{ flex: 1, minWidth: "300px" }}>
+                    {/* PROMO */}
                     <div
                         style={{
                             backgroundColor: "#f9f9f9",
@@ -416,14 +388,7 @@ export default function CheckoutPage() {
                             marginBottom: "20px",
                         }}
                     >
-                        <h3
-                            style={{
-                                fontSize: "16px",
-                                fontWeight: "bold",
-                                marginBottom: "10px",
-                                textAlign: "center",
-                            }}
-                        >
+                        <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
                             Promo Code
                         </h3>
 
@@ -449,7 +414,6 @@ export default function CheckoutPage() {
                                     backgroundColor: "#000",
                                     color: "white",
                                     fontWeight: "bold",
-                                    cursor: promoLoading ? "default" : "pointer",
                                     opacity: promoLoading ? 0.7 : 1,
                                 }}
                             >
@@ -470,6 +434,7 @@ export default function CheckoutPage() {
                         )}
                     </div>
 
+                    {/* PAYMENT */}
                     <div
                         style={{
                             backgroundColor: "#f9f9f9",
@@ -478,54 +443,41 @@ export default function CheckoutPage() {
                             border: "1px solid #ccc",
                         }}
                     >
-                        <h3
-                            style={{
-                                fontSize: "16px",
-                                fontWeight: "bold",
-                                marginBottom: "10px",
-                                textAlign: "center",
-                            }}
-                        >
+                        <h3 style={{ textAlign: "center", marginBottom: "10px" }}>
                             Payment Method
                         </h3>
 
-                        {SAVED_METHODS.map((method) => (
+                        {SAVED_METHODS.map((m) => (
                             <label
-                                key={method.id}
+                                key={m.id}
                                 style={{
                                     display: "flex",
-                                    alignItems: "center",
-                                    gap: "8px",
                                     padding: "8px",
-                                    marginBottom: "6px",
-                                    border:
-                                        paymentOption === method.id
-                                            ? "2px solid #000"
-                                            : "1px solid #ddd",
+                                    border: paymentOption === m.id
+                                        ? "2px solid #000"
+                                        : "1px solid #ddd",
                                     borderRadius: "8px",
+                                    marginBottom: "6px",
                                     cursor: "pointer",
+                                    gap: "8px",
                                 }}
                             >
                                 <input
                                     type="radio"
-                                    name="payment-method"
-                                    checked={paymentOption === method.id}
-                                    onChange={() => setPaymentOption(method.id)}
+                                    checked={paymentOption === m.id}
+                                    onChange={() => setPaymentOption(m.id)}
                                 />
                                 <div>
-                                    <div>{method.label}</div>
-                                    <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                                        {method.detail}
-                                    </div>
+                                    <div>{m.label}</div>
+                                    <div style={{ fontSize: "12px" }}>{m.detail}</div>
                                 </div>
                             </label>
                         ))}
 
+                        {/* NEW CARD */}
                         <label
                             style={{
                                 display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
                                 padding: "8px",
                                 border:
                                     paymentOption === "new"
@@ -533,11 +485,11 @@ export default function CheckoutPage() {
                                         : "1px solid #ddd",
                                 borderRadius: "8px",
                                 cursor: "pointer",
+                                gap: "8px",
                             }}
                         >
                             <input
                                 type="radio"
-                                name="payment-method"
                                 checked={paymentOption === "new"}
                                 onChange={() => setPaymentOption("new")}
                             />
@@ -581,7 +533,7 @@ export default function CheckoutPage() {
                                     />
                                     <input
                                         type="text"
-                                        placeholder="CVC"
+                                        placeholder="CVV"
                                         style={{
                                             flex: 1,
                                             padding: "8px",
@@ -592,26 +544,25 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
                         )}
-
-                        <button
-                            onClick={placeOrder}
-                            disabled={placing}
-                            style={{
-                                marginTop: "20px",
-                                width: "100%",
-                                padding: "12px",
-                                backgroundColor: "#000",
-                                color: "white",
-                                borderRadius: "8px",
-                                fontWeight: "bold",
-                                fontSize: "16px",
-                                cursor: placing ? "not-allowed" : "pointer",
-                                opacity: placing ? 0.7 : 1,
-                            }}
-                        >
-                            {placing ? "Placing..." : "Place Order"}
-                        </button>
                     </div>
+
+                    {/* PLACE ORDER BUTTON */}
+                    <button
+                        onClick={placeOrder}
+                        disabled={placing}
+                        style={{
+                            marginTop: "20px",
+                            width: "100%",
+                            padding: "14px",
+                            backgroundColor: "#000",
+                            color: "white",
+                            borderRadius: "8px",
+                            fontWeight: "bold",
+                            opacity: placing ? 0.6 : 1,
+                        }}
+                    >
+                        {placing ? "Placing Order..." : "Place Order"}
+                    </button>
                 </div>
             </div>
         </div>

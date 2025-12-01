@@ -10,6 +10,7 @@ interface User {
   last_name: string;
   email: string;
   state: string; // active, inactive, suspended status 
+  promo: boolean; // registered for promotions, yes or no 
 }
 
 export default function UserDetails() {
@@ -167,6 +168,42 @@ export default function UserDetails() {
           <input
             type="text"
             value={user.email}
+            disabled
+            style={{
+              padding: "8px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              backgroundColor: "#eaeaea",
+              color: "black",
+              width: "220px",
+              textAlign: "center",
+              cursor: "not-allowed",
+            }}
+          />
+        </div>
+
+        {/* PROMOTIONS */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginBottom: "10px",
+            alignItems: "center",
+          }}
+        >
+          <label
+            style={{
+              fontWeight: "bold",
+              color: "black",
+              marginBottom: "5px",
+              fontSize: "15px",
+            }}
+          >
+            Registered for Promotions:
+          </label>
+          <input
+            type="text"
+            value={user.promo ? "Yes" : "No"}
             disabled
             style={{
               padding: "8px",
