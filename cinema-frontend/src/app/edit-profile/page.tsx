@@ -221,7 +221,6 @@ export default function EditProfilePage() {
       </div>
     );
 
-  // Render UI
   return (
     <div
       style={{

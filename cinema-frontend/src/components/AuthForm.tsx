@@ -29,7 +29,6 @@ export default function AuthForm({
     const [userType, setUserType] = useState<string>("customer");
     const [addAddress, setAddAddress] = useState<boolean>(false);
     const [addPayment, setAddPayment] = useState<boolean>(false);
-    // typeRef removed — we'll use controlled select bound to `userType`
 
 
     // refs

@@ -132,7 +132,7 @@ export default function AddMoviePage() {
               color: "black",
             }}
           >
-            {["G", "PG", "PG-13", "R", "NC-17"].map((rating) => (
+            {["G", "PG", "PG-13", "R"].map((rating) => (
               <option key={rating} value={rating}>
                 {rating}
               </option>

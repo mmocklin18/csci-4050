@@ -188,7 +188,6 @@ export default function OrderConfirmationPage() {
                             <span>Seniors: {seniors}</span>
                         </div>
 
-                        {/* Divider */}
                         <div
                             style={{
                                 height: "1px",
@@ -197,7 +196,7 @@ export default function OrderConfirmationPage() {
                             }}
                         />
 
-                        {/* Promo row — only shown if promo used */}
+                        {/* Promo */}
                         {booking.promoUsed && (
                             <div
                                 style={{

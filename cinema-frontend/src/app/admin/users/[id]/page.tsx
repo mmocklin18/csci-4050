@@ -81,7 +81,6 @@ export default function UserDetails() {
     >
       <Navbar />
 
-      {/* TITLE */}
       <h1
         style={{
           marginTop: "30px",
@@ -100,7 +99,7 @@ export default function UserDetails() {
         Edit User
       </h1>
 
-      {/* FORM */}
+      {/* Form */}
       <div
         style={{
           display: "flex",
@@ -110,7 +109,7 @@ export default function UserDetails() {
           marginTop: "16px",
         }}
       >
-        {/* NAME */}
+        {/* Name */}
         <div
           style={{
             display: "flex",
@@ -146,7 +145,7 @@ export default function UserDetails() {
           />
         </div>
 
-        {/* EMAIL */}
+        {/* Email */}
         <div
           style={{
             display: "flex",
@@ -182,7 +181,7 @@ export default function UserDetails() {
           />
         </div>
 
-        {/* PROMOTIONS */}
+        {/* Promos */}
         <div
           style={{
             display: "flex",
@@ -218,7 +217,7 @@ export default function UserDetails() {
           />
         </div>
 
-        {/* STATUS DROPDOWN */}
+        {/* Status Dropdown */}
         <div
           style={{
             display: "flex",
@@ -263,7 +262,7 @@ export default function UserDetails() {
           </select>
         </div>
 
-        {/* SAVE BUTTON */}
+        {/* Save */}
         <div
           style={{
             display: "flex",

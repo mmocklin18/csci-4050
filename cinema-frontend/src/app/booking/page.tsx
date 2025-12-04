@@ -272,7 +272,6 @@ export default function Booking() {
                     </div>
                 </div>
 
-                {/* Optional: show price loading / error */}
                 {pricesLoading && (
                     <p style={{ color: "#555", marginBottom: "8px" }}>
                         Loading ticket prices…
