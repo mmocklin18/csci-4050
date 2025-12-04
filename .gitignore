@@ -17,3 +17,4 @@ node_modules/
 *.pem
 *.key
 *.pem
+movies_schema.sql

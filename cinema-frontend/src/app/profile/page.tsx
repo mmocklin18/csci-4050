@@ -42,8 +42,13 @@ export default function ProfilePage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.API_BASE ||
+    process.env.API_BASE_URL ||
+    "";
 
   useEffect(() => {
     async function fetchData() {
@@ -55,7 +60,13 @@ export default function ProfilePage() {
           return;
         }
 
-        const [userRes, cardRes, orderRes] = await Promise.all([
+        if (!API_BASE) {
+          setError("API base URL is not configured");
+          setLoading(false);
+          return;
+        }
+
+        const [userRes, cardRes, orderRes] = await Promise.allSettled([
           fetch(`${API_BASE}/user/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
@@ -67,22 +78,32 @@ export default function ProfilePage() {
           }),
         ]);
 
-        if (userRes.ok) {
-          const userData = await userRes.json();
+        if (userRes.status === "fulfilled" && userRes.value.ok) {
+          const userData = await userRes.value.json();
           setProfile(userData);
         }
 
-        if (cardRes.ok) {
-          const cardData = await cardRes.json();
+        if (cardRes.status === "fulfilled" && cardRes.value.ok) {
+          const cardData = await cardRes.value.json();
           setCards(cardData);
         }
 
-        if (orderRes.ok) {
-          const orderData = await orderRes.json();
+        if (orderRes.status === "fulfilled" && orderRes.value.ok) {
+          const orderData = await orderRes.value.json();
           setOrders(orderData);
+        }
+
+        if (
+          (userRes.status === "rejected" ||
+            cardRes.status === "rejected" ||
+            orderRes.status === "rejected") &&
+          !error
+        ) {
+          setError("Unable to reach the server. Please check your connection or API base URL.");
         }
       } catch (err) {
         console.error("Error loading profile:", err);
+        setError("Failed to fetch profile data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -101,7 +122,7 @@ export default function ProfilePage() {
   if (!profile)
     return (
       <div style={{ textAlign: "center", marginTop: "50px", color: "black" }}>
-        Failed to load profile.
+        {error || "Failed to load profile."}
       </div>
     );
 

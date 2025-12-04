@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import get_session
+from app.core.dependencies import get_current_user
 from app.models.reserved_seats import ReservedSeat
 from app.models.show import Show
 from app.models.seats import Seat
@@ -24,10 +25,21 @@ async def _create_booking_and_send_email(
     payload: OrderConfirmationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession,
+    current_user: User,
 ) -> Booking:
-    user = await db.get(User, payload.user_id)
-    if not user:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    if not payload.creditcard:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "A payment method is required to complete booking",
+        )
+
+    if payload.user_id != current_user.user_id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Cannot create a booking for another user",
+        )
+
+    user = current_user
 
     show = await db.get(Show, payload.show_id)
     if not show:
@@ -58,7 +70,12 @@ async def _create_booking_and_send_email(
     )
     existing = existing_result.scalars().all()
 
-    stolen = [f"{seat.row_no}{seat.seat_no}" for seat in seats for rs in existing if rs.seat_id == seat.seats_id and rs.user_id != payload.user_id]
+    stolen = [
+        f"{seat.row_no}{seat.seat_no}"
+        for seat in seats
+        for rs in existing
+        if rs.seat_id == seat.seats_id and rs.user_id != current_user.user_id
+    ]
     if stolen:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -66,10 +83,10 @@ async def _create_booking_and_send_email(
         )
 
     booking = Booking(
-        user_id=payload.user_id,
+        user_id=current_user.user_id,
         show_id=payload.show_id,
         total_amount=payload.total_amount,
-        creditcard=payload.creditcard or 0,
+        creditcard=payload.creditcard,
     )
     db.add(booking)
     await db.flush()
@@ -82,7 +99,7 @@ async def _create_booking_and_send_email(
             db.add(
                 ReservedSeat(
                     booking_id=booking.booking_id,
-                    user_id=payload.user_id,
+                    user_id=current_user.user_id,
                     show_id=payload.show_id,
                     seat_id=seat.seats_id,
                 )
@@ -136,8 +153,14 @@ async def checkout_booking(
     payload: OrderConfirmationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    booking = await _create_booking_and_send_email(payload, background_tasks, db)
+    booking = await _create_booking_and_send_email(
+        payload,
+        background_tasks,
+        db,
+        current_user,
+    )
     return BookingRead.model_validate(booking, from_attributes=True)
 
 
@@ -146,6 +169,12 @@ async def send_order_confirmation(
     payload: OrderConfirmationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    booking = await _create_booking_and_send_email(payload, background_tasks, db)
+    booking = await _create_booking_and_send_email(
+        payload,
+        background_tasks,
+        db,
+        current_user,
+    )
     return {"message": "Order confirmation email queued", "booking_id": booking.booking_id}

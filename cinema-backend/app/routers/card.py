@@ -4,6 +4,7 @@ from sqlalchemy import select, func
 from app.core.db import get_session
 from app.models.card import Card
 from app.schemas.card import CardCreate, CardRead
+from app.models.address import Address
 from app.core.security import encrypt_data, decrypt_data
 from datetime import datetime, date
 from app.models.user import User
@@ -20,6 +21,10 @@ async def create_card(
     session: AsyncSession = Depends(get_session),
 ):
     """Create a new payment card for a customer."""
+
+    user = await session.get(User, payload.customer_id)
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
 
     count_result = await session.execute(
         select(func.count()).select_from(Card).where(Card.customer_id == payload.customer_id)
@@ -52,17 +57,43 @@ async def create_card(
     encrypted_number = encrypt_data(payload.number)
     encrypted_cvc = encrypt_data(str(payload.cvc))  
 
+    address_id = user.address_id or payload.address_id
+    if not address_id and payload.address:
+        addr_data = payload.address
+        address = Address(
+            street=addr_data.street,
+            city=addr_data.city,
+            state=addr_data.state,
+            zip=addr_data.zip,
+        )
+        session.add(address)
+        await session.flush()
+        address_id = address.address_id
+        user.address_id = address_id
+
+    if not address_id:
+        raise HTTPException(status_code=400, detail="Billing address is required for a card.")
+
     card = Card(
         number=encrypted_number,
-        address_id=payload.address_id,
+        address_id=address_id,
         exp_date=exp_date,
         customer_id=payload.customer_id,
         cvc=encrypted_cvc
     )
 
-    session.add(card)
-    await session.commit()
-    await session.refresh(card)
+    try:
+        session.add(card)
+        await session.commit()
+        await session.refresh(card)
+    except Exception:
+        await session.rollback()
+        raise
+
+    # re-fetch to ensure persisted values are loaded cleanly
+    card_db = await session.get(Card, card.card_id)
+    if not card_db:
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to save card")
 
     user = await session.get(User, payload.customer_id)
     if user:
@@ -75,11 +106,18 @@ async def create_card(
             action="added",
         )
 
-    # Decrypt before returning
-    card.number = decrypt_data(card.number)
-    card.cvc = decrypt_data(card.cvc)
-
-    return card
+    # Decrypt before returning and avoid lazy relationship access during serialization
+    return CardRead.model_validate(
+        {
+            "card_id": card_db.card_id,
+            "number": decrypt_data(card_db.number),
+            "cvc": decrypt_data(card_db.cvc),
+            "address_id": card_db.address_id,
+            "customer_id": card_db.customer_id,
+            "exp_date": card_db.exp_date,
+            "address": payload.address,
+        }
+    )
 
 
 @router.delete("/{card_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -120,11 +158,20 @@ async def list_user_cards(user_id: int, session: AsyncSession = Depends(get_sess
     result = await session.execute(select(Card).where(Card.customer_id == user_id))
     cards = result.scalars().all()
 
-    for card in cards:
-        card.number = decrypt_data(card.number)
-        card.cvc = decrypt_data(card.cvc)
-
-    return cards
+    return [
+        CardRead.model_validate(
+            {
+                "card_id": card.card_id,
+                "number": decrypt_data(card.number),
+                "cvc": decrypt_data(card.cvc),
+                "address_id": card.address_id,
+                "customer_id": card.customer_id,
+                "exp_date": card.exp_date,
+                "address": None,
+            }
+        )
+        for card in cards
+    ]
 
 
 @router.get("/{card_id}", response_model=CardRead)

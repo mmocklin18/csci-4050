@@ -9,7 +9,7 @@ class OrderConfirmationRequest(BaseModel):
     show_id: int
     seat_ids: List[int] = Field(min_length=1)
     total_amount: float = Field(ge=0)
-    creditcard: int | None = None
+    creditcard: int = Field(..., gt=0)
 
 
 class BookingRead(BaseModel):

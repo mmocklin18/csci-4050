@@ -81,9 +81,12 @@ export default function CheckoutPage() {
 
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
+    const [authToken, setAuthToken] = useState<string | null>(null);
+    const [userId, setUserId] = useState<number | null>(null);
     const [cards, setCards] = useState<
         { card_id: number; label: string; detail: string }[]
     >([]);
+    const [userHasAddress, setUserHasAddress] = useState(false);
     const [promoCode, setPromoCode] = useState("");
     const [promo, setPromo] = useState<ApiPromotion | null>(null);
     const [appliedCode, setAppliedCode] = useState<string | null>(null);
@@ -91,6 +94,14 @@ export default function CheckoutPage() {
     const [promoLoading, setPromoLoading] = useState(false);
     const [paymentOption, setPaymentOption] = useState<PaymentOptionId>("saved1");
     const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+    const [newCardName, setNewCardName] = useState("");
+    const [newCardNumber, setNewCardNumber] = useState("");
+    const [newCardExp, setNewCardExp] = useState("");
+    const [newCardCvc, setNewCardCvc] = useState("");
+    const [billingStreet, setBillingStreet] = useState("");
+    const [billingCity, setBillingCity] = useState("");
+    const [billingState, setBillingState] = useState("");
+    const [billingZip, setBillingZip] = useState("");
     const [placing, setPlacing] = useState(false);
 
     useEffect(() => {
@@ -99,37 +110,62 @@ export default function CheckoutPage() {
         if (stored) setBooking(JSON.parse(stored));
         if (storedSeats) setSeats(JSON.parse(storedSeats));
 
-        const token = localStorage.getItem("auth_token");
-        const userId = localStorage.getItem("user_id");
+        const token =
+            localStorage.getItem("auth_token") ||
+            localStorage.getItem("token");
+        const userIdStr = localStorage.getItem("user_id");
 
-        if (token && userId && API_BASE) {
-            fetch(`${API_BASE}/cards/user/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-                .then(async (res) => {
-                    if (!res.ok) throw new Error(await res.text());
-                    return res.json();
-                })
-                .then((data: any[]) => {
-                    const formatted = data.map((c) => ({
-                        card_id: c.card_id,
-                        label: `Card •••• ${String(c.number).slice(-4)}`,
-                        detail: `Expires ${new Date(c.exp_date).toLocaleDateString("en-US", {
-                            month: "2-digit",
-                            year: "2-digit",
-                        })}`,
-                    }));
-                    setCards(formatted);
-                    if (formatted.length) {
-                        setPaymentOption("saved1");
-                        setSelectedCardId(formatted[0].card_id);
+        if (!token || !userIdStr) {
+            router.replace("/booking-summary?requireLogin=1");
+            return;
+        }
+
+        const parsedUserId = Number(userIdStr);
+        if (Number.isNaN(parsedUserId)) {
+            router.replace("/booking-summary?requireLogin=1");
+            return;
+        }
+
+        setAuthToken(token);
+        setUserId(parsedUserId);
+
+        if (API_BASE) {
+            Promise.all([
+                fetch(`${API_BASE}/cards/user/${parsedUserId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                fetch(`${API_BASE}/user/`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+            ])
+                .then(async ([cardsRes, userRes]) => {
+                    if (cardsRes.ok) {
+                        const data: any[] = await cardsRes.json();
+                        const formatted = data.map((c) => ({
+                            card_id: c.card_id,
+                            label: `Card •••• ${String(c.number).slice(-4)}`,
+                            detail: `Expires ${new Date(c.exp_date).toLocaleDateString("en-US", {
+                                month: "2-digit",
+                                year: "2-digit",
+                            })}`,
+                        }));
+                        setCards(formatted);
+                        if (formatted.length) {
+                            setPaymentOption("saved1");
+                            setSelectedCardId(formatted[0].card_id);
+                        }
+                    }
+
+                    if (userRes.ok) {
+                        const userData = await userRes.json();
+                        setUserHasAddress(Boolean(userData?.address));
                     }
                 })
                 .catch((err) => {
-                    console.warn("Could not load cards", err);
+                    console.warn("Could not load cards/user", err);
                 });
         }
-    }, []);
+    }, [router]);
 
     const adults = booking?.tickets.adults ?? 0;
     const children = booking?.tickets.children ?? 0;
@@ -221,20 +257,21 @@ export default function CheckoutPage() {
             return;
         }
 
-        const userIdStr = localStorage.getItem("user_id");
-        const userId = userIdStr ? Number(userIdStr) : NaN;
-        if (!userIdStr || Number.isNaN(userId)) {
+        const token =
+            authToken ||
+            localStorage.getItem("auth_token") ||
+            localStorage.getItem("token");
+        const userIdStr = userId !== null ? userId.toString() : localStorage.getItem("user_id");
+        const userIdNum = userId !== null ? userId : userIdStr ? Number(userIdStr) : NaN;
+
+        if (!token || !userIdStr || Number.isNaN(userIdNum)) {
             alert("Please log in before purchasing.");
+            router.replace("/booking-summary?requireLogin=1");
             return;
         }
 
         if (!API_BASE) {
             alert("API base URL is not configured.");
-            return;
-        }
-
-        if (!selectedCardId) {
-            alert("Please choose a payment method.");
             return;
         }
 
@@ -278,16 +315,92 @@ export default function CheckoutPage() {
                 seatIds.push(seatId);
             }
 
+            let cardIdToUse = selectedCardId;
+
+            if (paymentOption === "new") {
+                const number = newCardNumber.trim();
+                const exp = newCardExp.trim();
+                const cvc = newCardCvc.trim();
+                const street = billingStreet.trim();
+                const city = billingCity.trim();
+                const stateVal = billingState.trim();
+                const zip = billingZip.trim();
+
+                if (!number || !exp || !cvc) {
+                    throw new Error("Please enter card number, expiration, and CVV.");
+                }
+                if (!userHasAddress && (!street || !city || !stateVal || !zip)) {
+                    throw new Error("Please enter the full billing address.");
+                }
+
+                const createBody: any = {
+                    number,
+                    exp_date: exp,
+                    cvc,
+                    customer_id: userIdNum,
+                };
+                if (!userHasAddress) {
+                    createBody.address = {
+                        street,
+                        city,
+                        state: stateVal,
+                        zip,
+                    };
+                }
+
+                const createRes = await fetch(`${API_BASE}/cards`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(createBody),
+                });
+
+                if (!createRes.ok) {
+                    const text = await createRes.text();
+                    throw new Error(text || "Failed to add card.");
+                }
+
+                const newCard = await createRes.json();
+                cardIdToUse = newCard.card_id;
+                setSelectedCardId(cardIdToUse);
+                if (!userHasAddress && createBody.address) {
+                    setUserHasAddress(true);
+                }
+
+                setCards((prev) => {
+                    const updated = [
+                        ...prev,
+                        {
+                            card_id: newCard.card_id,
+                            label: `Card •••• ${String(newCard.number).slice(-4)}`,
+                            detail: `Expires ${new Date(newCard.exp_date).toLocaleDateString("en-US", {
+                                month: "2-digit",
+                                year: "2-digit",
+                            })}`,
+                        },
+                    ];
+                    return updated;
+                });
+            } else if (!cardIdToUse) {
+                alert("Please choose a payment method.");
+                return;
+            }
+
             // create booking, reserve seats, and queue email in one call
             const checkoutRes = await fetch(`${API_BASE}/booking/checkout`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify({
-                    user_id: userId,
+                    user_id: userIdNum,
                     show_id: showIdNum,
                     seat_ids: seatIds,
                     total_amount: finalTotal,
-                    creditcard: selectedCardId,
+                    creditcard: cardIdToUse,
                 }),
             });
 
@@ -492,10 +605,10 @@ export default function CheckoutPage() {
                                     style={{
                                         display: "flex",
                                         padding: "8px",
-                                        border:
-                                            paymentOption === "saved1" && selectedCardId === m.card_id
-                                                ? "2px solid #000"
-                                                : "1px solid #ddd",
+                        border:
+                            paymentOption === "saved1" && selectedCardId === m.card_id
+                                ? "2px solid #000"
+                                : "1px solid #ddd",
                                         borderRadius: "8px",
                                         marginBottom: "6px",
                                         cursor: "pointer",
@@ -548,6 +661,8 @@ export default function CheckoutPage() {
                                 <input
                                     type="text"
                                     placeholder="Name on card"
+                                    value={newCardName}
+                                    onChange={(e) => setNewCardName(e.target.value)}
                                     style={{
                                         width: "100%",
                                         padding: "8px",
@@ -559,6 +674,8 @@ export default function CheckoutPage() {
                                 <input
                                     type="text"
                                     placeholder="Card number"
+                                    value={newCardNumber}
+                                    onChange={(e) => setNewCardNumber(e.target.value)}
                                     style={{
                                         width: "100%",
                                         padding: "8px",
@@ -570,7 +687,9 @@ export default function CheckoutPage() {
                                 <div style={{ display: "flex", gap: "10px" }}>
                                     <input
                                         type="text"
-                                        placeholder="MM/YY"
+                                        placeholder="MM/YYYY"
+                                        value={newCardExp}
+                                        onChange={(e) => setNewCardExp(e.target.value)}
                                         style={{
                                             flex: 1,
                                             padding: "8px",
@@ -581,6 +700,8 @@ export default function CheckoutPage() {
                                     <input
                                         type="text"
                                         placeholder="CVV"
+                                        value={newCardCvc}
+                                        onChange={(e) => setNewCardCvc(e.target.value)}
                                         style={{
                                             flex: 1,
                                             padding: "8px",
@@ -589,6 +710,66 @@ export default function CheckoutPage() {
                                         }}
                                     />
                                 </div>
+                                {userHasAddress ? (
+                                    <p style={{ marginTop: "10px", fontSize: "13px", color: "#444" }}>
+                                        Using your saved billing address for this card.
+                                    </p>
+                                ) : (
+                                    <div style={{ marginTop: "10px" }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Billing street"
+                                            value={billingStreet}
+                                            onChange={(e) => setBillingStreet(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px",
+                                                marginBottom: "10px",
+                                                borderRadius: "6px",
+                                                border: "1px solid #ccc",
+                                            }}
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="City"
+                                            value={billingCity}
+                                            onChange={(e) => setBillingCity(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px",
+                                                marginBottom: "10px",
+                                                borderRadius: "6px",
+                                                border: "1px solid #ccc",
+                                            }}
+                                        />
+                                        <div style={{ display: "flex", gap: "10px" }}>
+                                            <input
+                                                type="text"
+                                                placeholder="State"
+                                                value={billingState}
+                                                onChange={(e) => setBillingState(e.target.value)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "8px",
+                                                    borderRadius: "6px",
+                                                    border: "1px solid #ccc",
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="ZIP"
+                                                value={billingZip}
+                                                onChange={(e) => setBillingZip(e.target.value)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "8px",
+                                                    borderRadius: "6px",
+                                                    border: "1px solid #ccc",
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

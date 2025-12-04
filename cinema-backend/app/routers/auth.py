@@ -44,7 +44,7 @@ async def signup(
         last_name=payload.last_name,
         email=payload.email,
         password=get_password_hash(payload.password),
-        type=UserType.customer,
+        role=UserType.customer,
         state=StateType.Inactive,
         promo=bool(payload.promo),
     )

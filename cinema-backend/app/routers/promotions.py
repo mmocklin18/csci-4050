@@ -60,6 +60,37 @@ async def create_promotion(
     return promo
 
 
+@router.post("/{promotion_id}/notify", status_code=status.HTTP_202_ACCEPTED)
+async def notify_promotion(
+    promotion_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_session),
+):
+    promo = await db.get(Promotion, promotion_id)
+    if not promo:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Promotion not found")
+
+    subscribers = await db.execute(
+        select(User).where(
+            User.promo.is_(True),
+            User.state == StateType.Active,
+        )
+    )
+
+    for user in subscribers.scalars().all():
+        queue_promotion_email(
+            background_tasks,
+            email=user.email,
+            first_name=user.first_name,
+            code=promo.code,
+            discount=promo.discount,
+            start_date=promo.start_date,
+            end_date=promo.end_date,
+        )
+
+    return {"message": "Promotion emails queued"}
+
+
 @router.delete("/{promotion_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_promotion(promotion_id: int, db: AsyncSession = Depends(get_session)):
     promo = await db.get(Promotion, promotion_id)

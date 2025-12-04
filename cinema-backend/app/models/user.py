@@ -29,3 +29,12 @@ class User(Base):
     
     address = relationship("Address", back_populates="users")
     cards = relationship("Card", back_populates="user", cascade="all, delete-orphan")
+
+    # backwards compatibility alias for legacy "type" column name
+    @property
+    def type(self):
+        return self.role
+
+    @type.setter
+    def type(self, value):
+        self.role = value

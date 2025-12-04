@@ -41,6 +41,23 @@ export default function ManagePromotions() {
     router.push("/admin/promotions/add");
   };
 
+  const handleNotify = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/promotions/${id}/notify`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        alert(text || "Failed to send promotion email.");
+        return;
+      }
+      alert("Emails are being sent to subscribed users.");
+    } catch (err) {
+      console.error("Error notifying promotion:", err);
+      alert("Failed to send promotion email.");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this promotion?")) return;
 
@@ -129,21 +146,38 @@ export default function ManagePromotions() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => handleDelete(p.promotions_id)}
-                  style={{
-                    padding: "6px 12px",
-                    backgroundColor: "#b91c1c",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => handleNotify(p.promotions_id)}
+                    style={{
+                      padding: "6px 12px",
+                      backgroundColor: "#2563eb",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Email subscribers
+                  </button>
+                  <button
+                    onClick={() => handleDelete(p.promotions_id)}
+                    style={{
+                      padding: "6px 12px",
+                      backgroundColor: "#b91c1c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </li>
             ))
           ) : (

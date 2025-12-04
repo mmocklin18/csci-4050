@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import AuthForm from "@/components/AuthForm";
 
@@ -99,6 +100,7 @@ const getShowroomLabel = (showroomId?: string): string => {
 };
 
 export default function BookingSummaryPage() {
+    const searchParams = useSearchParams();
     const [booking, setBooking] = useState<BookingSummary | null>(null);
     const [seats, setSeats] = useState<string[]>([]);
     const [selectedTheater, setSelectedTheater] = useState<string | null>(null);
@@ -137,6 +139,13 @@ export default function BookingSummaryPage() {
             setSelectedTheater(storedTheater);
         }
     }, []);
+
+    useEffect(() => {
+        const requireLogin = searchParams.get("requireLogin");
+        if (requireLogin === "1" || requireLogin === "true") {
+            setShowAuthModal(true);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         let alive = true;
@@ -209,8 +218,9 @@ export default function BookingSummaryPage() {
         const token =
             localStorage.getItem("auth_token") ||
             localStorage.getItem("token");
+        const userId = localStorage.getItem("user_id");
 
-        if (token) {
+        if (token && userId) {
             window.location.href = "/checkout";
         } else {
             setShowAuthModal(true);
@@ -218,6 +228,11 @@ export default function BookingSummaryPage() {
     };
 
     const closeAuthModal = () => setShowAuthModal(false);
+
+    const handleAuthSuccess = () => {
+        setShowAuthModal(false);
+        window.location.href = "/checkout";
+    };
 
     return (
         <div
@@ -509,7 +524,7 @@ export default function BookingSummaryPage() {
                             Please log in to continue
                         </div>
 
-                        <AuthForm />
+                        <AuthForm onSuccess={handleAuthSuccess} onClose={closeAuthModal} />
                     </div>
                 </div>
             )}
