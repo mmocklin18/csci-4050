@@ -6,7 +6,7 @@ from typing import List
 
 from app.core.db import get_session
 from app.models.movie import Movie
-from app.schemas.movie import MovieRead, MovieCreate
+from app.schemas.movie import MovieRead, MovieCreate, MovieUpdate
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
@@ -44,6 +44,27 @@ async def delete_movie(movie_id: int, db: AsyncSession = Depends(get_session)):
             "Cannot delete a movie that has scheduled shows or existing bookings",
         )
     return {"message": f"Movie {movie_id} deleted successfully"}
+
+@router.put("/{movie_id}", response_model=MovieRead)
+async def update_movie(
+    movie_id: int,
+    payload: MovieUpdate,
+    db: AsyncSession = Depends(get_session),
+):
+    movie = await db.get(Movie, movie_id)
+    if not movie:
+        raise HTTPException(404, "Movie not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(movie, field, value)
+
+    try:
+        await db.commit()
+        await db.refresh(movie)
+        return movie
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating movie: {e}")
 
 
 @router.post("/", response_model=MovieRead, status_code=201)
